@@ -55,7 +55,9 @@ robyn_run <- function(InputCollect,
                       dt_hyper_fixed = NULL,
                       seed = 123L,
                       csv_out = "pareto",
-                      ui = FALSE) {
+                      ui = FALSE,
+                      unconstrained_intercept = FALSE
+                      ) {
 
   #####################################
   #### Set local environment
@@ -118,7 +120,8 @@ robyn_run <- function(InputCollect,
       # ,cores = cores
       # ,optimizer_name = InputCollect$nevergrad_algo
       lambda_fixed = dt_hyper_fixed$lambda,
-      seed = seed
+      seed = seed,
+      unconstrained_intercept = unconstrained_intercept
     )
 
     model_output_collect[[1]]$trial <- 1
@@ -173,7 +176,8 @@ robyn_run <- function(InputCollect,
         InputCollect = InputCollect,
         lambda_control = lambda_control,
         refresh = refresh,
-        seed = seed
+        seed = seed,
+        unconstrained_intercept = unconstrained_intercept
       )
 
       check_coef0 <- any(model_output$resultCollect$decompSpendDist$decomp.rssd == Inf)
@@ -965,7 +969,8 @@ robyn_mmm <- function(hyper_collect,
                       lambda_control = 1,
                       lambda_fixed = NULL,
                       refresh = FALSE,
-                      seed = 123L) {
+                      seed = 123L,
+                      unconstrained_intercept = FALSE) {
   if (reticulate::py_module_available("nevergrad")) {
     ng <- reticulate::import("nevergrad", delay_load = TRUE)
     if (is.integer(seed)) {
@@ -1302,10 +1307,19 @@ robyn_mmm <- function(hyper_collect,
 
           ## if no lift calibration, refit using best lambda
           if (hyper_fixed == FALSE) {
-            mod_out <- model_refit(x_train, y_train, lambda = lambda, lower.limits, upper.limits)
+            if (unconstrained_intercept == FALSE){
+              mod_out <- model_refit(x_train, y_train, lambda = lambda, lower.limits, upper.limits)
+            } else if (unconstrained_intercept == TRUE){
+              mod_out <- model_refit_free_intercept(x_train, y_train, lambda = lambda, lower.limits, upper.limits)              
+            }
           } else {
-            mod_out <- model_refit(x_train, y_train, lambda = lambda_fixed[i], lower.limits, upper.limits)
-            lambda <- lambda_fixed[i]
+            if (unconstrained_intercept == FALSE){
+              mod_out <- model_refit(x_train, y_train, lambda = lambda_fixed[i], lower.limits, upper.limits)
+              lambda <- lambda_fixed[i]
+            } else if (unconstrained_intercept == TRUE){
+              mod_out <- model_refit_free_intercept(x_train, y_train, lambda = lambda_fixed[i], lower.limits, upper.limits)
+              lambda <- lambda_fixed[i]              
+            }
           }
 
           # hypParamSam["lambdas"] <- cvmod$lambda.1se
@@ -1927,6 +1941,66 @@ model_refit <- function(x_train, y_train, lambda, lower.limits, upper.limits) {
     df.int = df.int
   )
 
+  return(mod_out)
+}
+
+
+model_refit_free_intercept <- function(x_train, y_train, lambda, lower.limits, upper.limits) {
+  mod <- glmnet(
+    x_train,
+    y_train,
+    family = "gaussian",
+    alpha = 0, # 0 for ridge regression
+    # https://stats.stackexchange.com/questions/138569/why-is-lambda-within-one-standard-error-from-the-minimum-is-a-recommended-valu
+    lambda = lambda,
+    lower.limits = lower.limits,
+    upper.limits = upper.limits
+  ) # coef(mod)
+  #Change: 2021/11/03: allow robyn to have a negative intercept
+  ## drop intercept if negative
+  #if (coef(mod)[1] < 0) {
+  #  mod <- glmnet(
+  #    x_train,
+  #    y_train,
+  #    family = "gaussian",
+  #    alpha = 0 # 0 for ridge regression
+  #    , lambda = lambda,
+  #    lower.limits = lower.limits,
+  #    upper.limits = upper.limits,
+  #    intercept = FALSE
+  #  ) # coef(mod)
+  #} # ; plot(mod); print(mod)
+  
+  df.int <- ifelse(coef(mod)[1] == 0, 0, 1)
+  
+  y_trainPred <- predict(mod, s = lambda, newx = x_train)
+  rsq_train <- get_rsq(true = y_train, predicted = y_trainPred, p = ncol(x_train), df.int = df.int)
+  rsq_train
+  
+  # y_testPred <- predict(mod, s = lambda, newx = x_test)
+  # rsq_test <- get_rsq(true = y_test, predicted = y_testPred); rsq_test
+  
+  # mape_mod<- mean(abs((y_test - y_testPred)/y_test)* 100); mape_mod
+  coefs <- as.matrix(coef(mod))
+  # y_pred <- c(y_trainPred, y_testPred)
+  
+  # mean(y_train) sd(y_train)
+  nrmse_train <- sqrt(mean((y_train - y_trainPred)^2)) / (max(y_train) - min(y_train))
+  # nrmse_test <- sqrt(mean(sum((y_test - y_testPred)^2))) /
+  # (max(y_test) - min(y_test)) # mean(y_test) sd(y_test)
+  
+  mod_out <- list(
+    rsq_train = rsq_train
+    # ,rsq_test = rsq_test
+    , nrmse_train = nrmse_train
+    # ,nrmse_test = nrmse_test
+    # ,mape_mod = mape_mod
+    , coefs = coefs,
+    y_pred = y_trainPred,
+    mod = mod,
+    df.int = df.int
+  )
+  
   return(mod_out)
 }
 
