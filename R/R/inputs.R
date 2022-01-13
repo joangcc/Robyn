@@ -661,7 +661,7 @@ prophet_decomp <- function(dt_transform, dt_holidays,
   }
 
   # save forecastRecurrence for analysis
-  list.save(forecastRecurrence ,"E:/temp/forecast_recurrence.rds")
+  # list.save(forecastRecurrence ,"E:/temp/forecast_recurrence.rds")
 
   if (use_trend) {
     dt_transform$trend <- forecastRecurrence$trend[1:nrow(recurrence)]
