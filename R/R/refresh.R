@@ -152,7 +152,11 @@ robyn_refresh <- function(robyn_object,
                           refresh_mode = "manual", # "auto", "manual"
                           refresh_iters = 1000,
                           refresh_trials = 3,
-                          plot_pareto = TRUE) {
+                          plot_pareto = TRUE,
+                          saveInputCollectSelector=FALSE,
+                          unconstrained_intercept=FALSE
+                          
+                          ) {
   refreshControl <- TRUE
   while (refreshControl) {
 
@@ -300,7 +304,9 @@ robyn_refresh <- function(robyn_object,
       plot_folder_sub = plot_folder_sub,
       pareto_fronts = 1,
       refresh = TRUE,
-      plot_pareto = plot_pareto
+      plot_pareto = plot_pareto,
+      saveInputCollectSelector=saveInputCollectSelector,
+      unconstrained_intercept=unconstrained_intercept
     )
 
     ## select winner model for current refresh
