@@ -56,6 +56,7 @@ robyn_run <- function(InputCollect,
                       seed = 123L,
                       csv_out = "pareto",
                       ui = FALSE,
+                      saveInputCollectSelector = FALSE,
                       unconstrained_intercept = FALSE
                       ) {
 
@@ -940,6 +941,13 @@ robyn_run <- function(InputCollect,
     totalTime = totalTime,
     plot_folder = paste0(plot_folder, "/", plot_folder_sub, "/")
   )
+  if (saveInputCollectSelector == TRUE) {
+    print("Saving InputCollect.RDS in plot subfolder...")
+    list.save(
+      InputCollect
+      ,paste0(plot_folder, "/", plot_folder_sub, "/InputCollect.rds")
+    )
+  }
   return(output)
 }
 
