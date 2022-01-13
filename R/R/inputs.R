@@ -628,9 +628,6 @@ prophet_decomp <- function(dt_transform, dt_holidays,
   use_holiday <- any(str_detect("holiday", prophet_vars))
 
   dt_regressors <- cbind(recurrence, subset(dt_transform, select = c(context_vars, paid_media_vars)))
-  print("calling prophet construction with variable args")
-  print(paste(...))
-  print("====================")
   modelRecurrence <- prophet(
     holidays = if (use_holiday) holidays[country == prophet_country] else NULL,
     yearly.seasonality = use_season,
@@ -640,9 +637,8 @@ prophet_decomp <- function(dt_transform, dt_holidays,
   )
 
   # save dt_regressors for analysis
-  list.save(dt_regressors ,"E:/temp/dt_regressors.rds")
+  # list.save(dt_regressors ,"dt_regressors.rds")
   if (!is.null(factor_vars) && length(factor_vars) > 0) {
-    print("Robyn use of Prophet: Factor variables branch")
     dt_ohe <- as.data.table(model.matrix(y ~ ., dt_regressors[, c("y", factor_vars), with = FALSE]))[, -1]
     ohe_names <- names(dt_ohe)
     for (addreg in ohe_names) modelRecurrence <- add_regressor(modelRecurrence, addreg)
@@ -660,11 +656,7 @@ prophet_decomp <- function(dt_transform, dt_holidays,
       dt_transform[, (aggreg) := scale(get_reg, center = min(get_reg), scale = FALSE)]
     }
   } else {
-    print("Robyn use of Prophet: No factor variables branch")
-    print("dt_regressors used")
-    print(dt_regressors)
     mod <- fit.prophet(modelRecurrence, dt_regressors)
-    print(mod)
     forecastRecurrence <- predict(mod, dt_regressors)
   }
 
