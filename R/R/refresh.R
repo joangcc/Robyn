@@ -154,9 +154,8 @@ robyn_refresh <- function(robyn_object,
                           refresh_trials = 3,
                           plot_pareto = TRUE,
                           saveInputCollectSelector=FALSE,
-                          unconstrained_intercept=FALSE
-                          
-                          ) {
+                          unconstrained_intercept=FALSE,
+                          ...) {
   refreshControl <- TRUE
   while (refreshControl) {
 
@@ -294,7 +293,7 @@ robyn_refresh <- function(robyn_object,
     #### update refresh model parameters
 
     ## feature engineering for refreshed data
-    InputCollectRF <- robyn_engineering(InputCollect = InputCollectRF)
+    InputCollectRF <- robyn_engineering(InputCollect = InputCollectRF, ...)
 
     ## refresh model with adjusted decomp.rssd
 
