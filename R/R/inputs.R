@@ -630,7 +630,7 @@ prophet_decomp <- function(dt_transform, dt_holidays,
   dt_regressors <- cbind(recurrence, subset(dt_transform, select = c(context_vars, paid_media_vars)))
   modelRecurrence <- prophet(
     holidays = if (use_holiday) holidays[country == prophet_country] else NULL,
-    yearly.seasonality = use_season,
+    yearly.seasonality = 20,  # use_season -- we would like to look for yearly.seasonality in "..." and if found use it instead of use_season; temp hard coding here.
     weekly.seasonality = use_weekday,
     daily.seasonality = FALSE,
     ...
