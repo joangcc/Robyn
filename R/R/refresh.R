@@ -154,6 +154,7 @@ robyn_refresh <- function(robyn_object,
                           refresh_iters = 1000,
                           refresh_trials = 3,
                           plot_pareto = TRUE,
+                          saveInputCollectSelector = FALSE
                           ...) {
   refreshControl <- TRUE
   while (refreshControl) {
@@ -304,7 +305,8 @@ robyn_refresh <- function(robyn_object,
       intercept_sign = listOutputPrev[["intercept_sign"]],
       pareto_fronts = 1,
       refresh = TRUE,
-      plot_pareto = plot_pareto
+      plot_pareto = plot_pareto,
+      saveInputCollectSelector=saveInputCollectSelector
     )
 
     ## select winner model for current refresh
