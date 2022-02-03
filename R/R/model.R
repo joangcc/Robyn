@@ -38,6 +38,7 @@ robyn_run <- function(InputCollect,
                       seed = 123L,
                       outputs = TRUE,
                       quiet = FALSE,
+                      saveInputCollectSelector = FALSE,
                       ...) {
 
   t0 <- Sys.time()
