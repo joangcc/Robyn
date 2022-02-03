@@ -63,28 +63,10 @@ robyn_run <- function(InputCollect,
   if (!outputs) {
     output <- OutputModels
   } else {
-    output <- robyn_outputs(InputCollect, OutputModels, saveInputCollectSelector=saveInputCollectSelector,...)
-    #Added to save InputCollect.RDS and AuxiliaryCOnfig.RDS
-      if (saveInputCollectSelector == TRUE) {
-        print("Saving InputCollect.RDS in plot subfolder...")
-        list.save(
-          InputCollect
-          ,paste0(plot_folder, "/", plot_folder_sub, "/InputCollect.rds")
-        )
-        print("Saving auxiliary RDS with key config parameters to reproduce OutputCollect.RDS")
-        auxiliaryConfig <-list(
-          calibration_constraint = calibration_constraint,
-          intercept_sign = intercept_sign,
-          UI = UI
-        )
-        list.save(
-          auxiliaryConfig
-          ,paste0(plot_folder, "/", plot_folder_sub, "/auxiliaryConfig.rds")
-        )
-        
-      }
-    
-    
+    output <- robyn_outputs(InputCollect, OutputModels,
+                            saveInputCollectSelector=saveInputCollectSelector,
+                            ...)
+
   }
 
   # Report total timing

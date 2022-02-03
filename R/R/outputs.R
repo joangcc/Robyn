@@ -45,9 +45,9 @@ robyn_outputs <- function(InputCollect, OutputModels,
                           clusters = TRUE, selected = "clusters",
                           ui = FALSE, export = TRUE,
                           quiet = FALSE,
-                          #saveInputCollectSelector = FALSE,
+                          saveInputCollectSelector = FALSE,
                           ...) {
-
+  #print(paste("saveInputCollectSelector value is:", saveInputCollectSelector))
   check_robyn_object(plot_folder)
   plot_folder <- check_filedir(plot_folder)
 
@@ -98,25 +98,26 @@ robyn_outputs <- function(InputCollect, OutputModels,
     hyper_fixed = attr(OutputModels, "hyper_fixed"),
     plot_folder = paste0(plot_folder, "/", plot_folder_sub, "/")
   )
-#  saveInputBool<- saveInputCollectSelector
-#  if (saveInputBool == TRUE) {
-#    print("Saving InputCollect.RDS in plot subfolder...")
-#    list.save(
-#      InputCollect
-#      ,paste0(plot_folder, "/", plot_folder_sub, "/InputCollect.rds")
-#    )
-#    print("Saving auxiliary RDS with key config parameters to reproduce OutputCollect.RDS")
-#    auxiliaryConfig <-list(
-#      calibration_constraint = calibration_constraint,
-#      intercept_sign = intercept_sign,
-#      UI = UI
-#    )
-#    list.save(
-#      auxiliaryConfig
-#      ,paste0(plot_folder, "/", plot_folder_sub, "/auxiliaryConfig.rds")
-#    )
-#    
-#  }
+  #saveInputBool<- saveInputCollectSelector
+  #print(paste("saveInputBool value is:", saveInputBool))
+  if (saveInputCollectSelector == TRUE) {
+    print("Saving InputCollect.RDS in plot subfolder...")
+    list.save(
+      InputCollect
+      ,paste0(plot_folder, "/", plot_folder_sub, "/InputCollect.rds")
+    )
+    print("Saving auxiliary RDS with key config parameters to reproduce OutputCollect.RDS")
+    auxiliaryConfig <-list(
+      calibration_constraint = calibration_constraint,
+      intercept_sign = InputCollect$intercept_sign,
+      UI = InputCollect$UI
+    )
+    list.save(
+      auxiliaryConfig
+      ,paste0(plot_folder, "/", plot_folder_sub, "/auxiliaryConfig.rds")
+    )
+    
+  }
 
   class(OutputCollect) <- c("robyn_outputs", class(OutputCollect))
 
