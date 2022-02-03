@@ -63,7 +63,7 @@ robyn_run <- function(InputCollect,
   if (!outputs) {
     output <- OutputModels
   } else {
-    output <- robyn_outputs(InputCollect, OutputModels, ...)
+    output <- robyn_outputs(InputCollect, OutputModels, saveInputCollectSelector=saveInputCollectSelector,...)
   }
 
   # Report total timing
