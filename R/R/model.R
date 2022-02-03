@@ -957,13 +957,13 @@ robyn_run <- function(InputCollect,
       ,paste0(plot_folder, "/", plot_folder_sub, "/InputCollect.rds")
     )
     print("Saving auxiliary RDS with key config parameters to reproduce OutputCollect.RDS")
-    list_dummy <-list(
+    auxiliaryConfig <-list(
       calibration_constraint = calibration_constraint,
       intercept_sign = intercept_sign,
       UI = UI
       )
     list.save(
-      InputCollect
+      auxiliaryConfig
       ,paste0(plot_folder, "/", plot_folder_sub, "/auxiliaryConfig.rds")
       )
     
