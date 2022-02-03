@@ -96,6 +96,25 @@ robyn_outputs <- function(InputCollect, OutputModels,
     hyper_fixed = attr(OutputModels, "hyper_fixed"),
     plot_folder = paste0(plot_folder, "/", plot_folder_sub, "/")
   )
+  
+  if (saveInputCollectSelector == TRUE) {
+    print("Saving InputCollect.RDS in plot subfolder...")
+    list.save(
+      InputCollect
+      ,paste0(plot_folder, "/", plot_folder_sub, "/InputCollect.rds")
+    )
+    print("Saving auxiliary RDS with key config parameters to reproduce OutputCollect.RDS")
+    auxiliaryConfig <-list(
+      calibration_constraint = calibration_constraint,
+      intercept_sign = intercept_sign,
+      UI = UI
+    )
+    list.save(
+      auxiliaryConfig
+      ,paste0(plot_folder, "/", plot_folder_sub, "/auxiliaryConfig.rds")
+    )
+    
+  }
 
   class(OutputCollect) <- c("robyn_outputs", class(OutputCollect))
 
