@@ -44,7 +44,8 @@ robyn_outputs <- function(InputCollect, OutputModels,
                           csv_out = "pareto",
                           clusters = TRUE, selected = "clusters",
                           ui = FALSE, export = TRUE,
-                          quiet = FALSE, ...) {
+                          quiet = FALSE, saveInputCollectSelector = saveInputCollectSelector,
+                          ...) {
 
   check_robyn_object(plot_folder)
   plot_folder <- check_filedir(plot_folder)
