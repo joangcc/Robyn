@@ -153,6 +153,7 @@ robyn_refresh <- function(robyn_object,
                           refresh_iters = 1000,
                           refresh_trials = 3,
                           plot_pareto = TRUE,
+                          saveInputCollectSelector = FALSE,
                           ...) {
   refreshControl <- TRUE
   while (refreshControl) {
