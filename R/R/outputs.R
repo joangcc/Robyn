@@ -44,8 +44,7 @@ robyn_outputs <- function(InputCollect, OutputModels,
                           csv_out = "pareto",
                           clusters = TRUE, selected = "clusters",
                           ui = FALSE, export = TRUE,
-                          quiet = FALSE, saveInputCollectSelector = saveInputCollectSelector,
-                          ...) {
+                          quiet = FALSE,...) {
 
   check_robyn_object(plot_folder)
   plot_folder <- check_filedir(plot_folder)
@@ -97,8 +96,8 @@ robyn_outputs <- function(InputCollect, OutputModels,
     hyper_fixed = attr(OutputModels, "hyper_fixed"),
     plot_folder = paste0(plot_folder, "/", plot_folder_sub, "/")
   )
-  
-  if (saveInputCollectSelector == TRUE) {
+  saveInputBool<- saveInputCollectSelector
+  if (saveInputBool == TRUE) {
     print("Saving InputCollect.RDS in plot subfolder...")
     list.save(
       InputCollect
