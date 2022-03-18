@@ -304,7 +304,7 @@ robyn_refresh <- function(robyn_object,
       pareto_fronts = 1,
       refresh = TRUE,
       plot_pareto = plot_pareto,
-      saveInputCollectSelector = saveInputCollectSelector
+      saveInputCollectSelector = saveInputCollectSelector,
       ...
     )
 
