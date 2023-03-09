@@ -72,10 +72,8 @@ robyn_pareto <- function(InputCollect, OutputModels,
       mutate(
         mape.qt10 =
           .data$mape <= mape_lift_quantile10 &
-            .data$nrmse <= nrmse_quantile90
-#         ADAPTED BY VISTA: deactivate decomp.rssd
-#             .data$nrmse <= nrmse_quantile90 &
-#             .data$decomp.rssd <= decomprssd_quantile90
+            .data$nrmse <= nrmse_quantile90 &
+            .data$decomp.rssd <= decomprssd_quantile90
       )
     # Calculate Pareto-fronts (for "all" or pareto_fronts)
     resultHypParamPareto <- filter(resultHypParam, .data$mape.qt10 == TRUE)
