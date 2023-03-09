@@ -903,11 +903,13 @@ robyn_mmm <- function(InputCollect,
           if (!hyper_fixed) {
             if (is.null(calibration_input)) {
               for (co in 1:iterPar) {
-                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co]))
+#                 optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co]))
+                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], 0))
               }
             } else {
               for (co in 1:iterPar) {
-                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co], mape.lift.collect[co]))
+#                 optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co], mape.lift.collect[co]))
+                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], 0, mape.lift.collect[co]))
               }
             }
           }
