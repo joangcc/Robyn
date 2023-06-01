@@ -14,6 +14,7 @@ robyn_clusters(
   dim_red = "PCA",
   quiet = FALSE,
   export = FALSE,
+  seed = 123,
   ...
 )
 }
@@ -23,8 +24,8 @@ robyn_clusters(
 \item{dep_var_type}{Character. For dep_var_type 'revenue', ROI is used for clustering.
 For conversion', CPA is used for clustering.}
 
-\item{all_media}{A character vector. Default to \code{InputCollect$all_media}.
-Includes \code{InputCollect$paid_media_vars} and \code{InputCollect$organic_vars}.}
+\item{all_media}{Character vector. Default to \code{InputCollect$all_media}.
+Includes \code{InputCollect$paid_media_spends} and \code{InputCollect$organic_vars}.}
 
 \item{k}{Integer. Number of clusters}
 
@@ -41,6 +42,8 @@ Pass any of: \code{c("PCA", "tSNE", "all", "none")}.}
 \item{quiet}{Boolean. Keep quiet? If not, print messages.}
 
 \item{export}{Export plots into local files?}
+
+\item{seed}{Numeric. Seed for reproducibility}
 
 \item{...}{Additional parameters passed to \code{lares::clusterKmeans()}.}
 }

@@ -161,7 +161,7 @@ robyn_response <- function(InputCollect = NULL,
     dayInterval <- InputCollect$dayInterval
   }
 
-  if (!(select_model %in% allSolutions)) {
+  if (!isTRUE(select_model %in% allSolutions) || is.null(select_model)) {
     stop(paste0(
       "Input 'select_model' must be one of these values: ",
       paste(allSolutions, collapse = ", ")
@@ -178,10 +178,10 @@ robyn_response <- function(InputCollect = NULL,
 
   if (usecase == "all_historical_vec") {
     ds_list <- check_metric_dates(date_range = "all", all_dates, dayInterval, quiet, ...)
-    val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
+    #val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
   } else if (usecase == "unit_metric_default_last_n") {
     ds_list <- check_metric_dates(date_range = paste0("last_", length(metric_value)), all_dates, dayInterval, quiet, ...)
-    val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
+    #val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
   } else {
     ds_list <- check_metric_dates(date_range, all_dates, dayInterval, quiet, ...)
   }
@@ -243,7 +243,9 @@ robyn_response <- function(InputCollect = NULL,
   ## Adstocking simulation
   x_list_sim <- transform_adstock(all_values_updated, adstock, theta = theta, shape = shape, scale = scale)
   media_vec_sim <- x_list_sim$x_decayed
+  media_vec_sim_imme <- if (adstock == "weibull_pdf") x_list_sim$x_imme else x_list_sim$x
   input_total <- media_vec_sim[ds_list$metric_loc]
+  input_immediate <- media_vec_sim_imme[ds_list$metric_loc]
   input_carryover <- input_total - input_immediate
 
   ## Saturation
@@ -303,7 +305,6 @@ robyn_response <- function(InputCollect = NULL,
     theme_lares() +
     scale_x_abbr() +
     scale_y_abbr()
-  p_res
   if (length(unique(metric_value)) == 1) {
     p_res <- p_res +
       geom_point(data = dt_point_caov, aes(x = .data$input, y = .data$output), size = 3, shape = 8)
@@ -326,7 +327,7 @@ robyn_response <- function(InputCollect = NULL,
 }
 
 which_usecase <- function(metric_value, date_range) {
-  dplyr::case_when(
+  case_when(
     # Case 1: raw historical spend and all dates -> model decomp as out of the model (no mean spends)
     is.null(metric_value) & is.null(date_range) ~ "all_historical_vec",
     # Case 2: same as case 1 for date_range

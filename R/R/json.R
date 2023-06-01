@@ -11,9 +11,11 @@
 #'
 #' @inheritParams robyn_outputs
 #' @param InputCollect \code{robyn_inputs()} output.
+#' @param OutputModels \code{robyn_run()} output.
 #' @param select_model Character. Which model ID do you want to export
 #' into the JSON file?
 #' @param dir Character. Existing directory to export JSON file to.
+#' @param all_sol_json Dataframe. Add all pareto solutions to json.
 #' @param ... Additional parameters.
 #' @examples
 #' \dontrun{
@@ -31,8 +33,11 @@ robyn_write <- function(InputCollect,
                         OutputCollect = NULL,
                         select_model = NULL,
                         dir = OutputCollect$plot_folder,
+                        OutputModels = NULL,
                         export = TRUE,
-                        quiet = FALSE, ...) {
+                        quiet = FALSE,
+                        all_sol_json = NULL,
+                        ...) {
   # Checks
   stopifnot(inherits(InputCollect, "robyn_inputs"))
   if (!is.null(OutputCollect)) {
@@ -48,7 +53,19 @@ robyn_write <- function(InputCollect,
   ret <- list()
   skip <- which(unlist(lapply(InputCollect, function(x) is.list(x) | is.null(x))))
   skip <- skip[!names(skip) %in% c("calibration_input", "hyperparameters", "custom_params")]
-  ret[["InputCollect"]] <- inputs <- InputCollect[-skip]
+  ret[["InputCollect"]] <- InputCollect[-skip]
+  if (is.null(OutputModels)) {
+    OutputModels <- OutputCollect$OutputModels
+  }
+  conv_msg <- mapply(function(x) x[[1]],
+    x = gregexpr(":", OutputModels$convergence$conv_msg),
+    SIMPLIFY = FALSE
+  )
+  conv_msg <- mapply(function(x, y) substr(x, 1, y - 1),
+    x = OutputModels$convergence$conv_msg,
+    y = conv_msg, USE.NAMES = FALSE
+  )
+  ret[["OutputCollect"]][["conv_msg"]] <- conv_msg
   # toJSON(inputs, pretty = TRUE)
 
   # ExportedModel JSON
@@ -91,6 +108,14 @@ robyn_write <- function(InputCollect,
   attr(ret, "json_file") <- filename
   if (export) {
     if (!quiet) message(sprintf(">> Exported model %s as %s", select_model, filename))
+    if (!is.null(all_sol_json)) {
+      all_c <- unique(all_sol_json$cluster)
+      all_sol_json <- lapply(all_c, function(x) {
+        (all_sol_json %>% filter(.data$cluster == x))$solID
+      })
+      names(all_sol_json) <- paste0("cluster", all_c)
+      ret[["OutputCollect"]][["all_sols"]] <- all_sol_json
+    }
     write_json(ret, filename, pretty = TRUE)
   }
   return(invisible(ret))
