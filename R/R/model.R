@@ -80,7 +80,7 @@ robyn_run <- function(InputCollect = NULL,
                       cores = NULL,
                       trials = 5,
                       iterations = 2000,
-                      rssd_zero_penalty = TRUE,
+                      #rssd_zero_penalty = TRUE,
                       nevergrad_algo = "TwoPointsDE",
                       intercept = TRUE,
                       intercept_sign = "non_negative",
@@ -290,7 +290,7 @@ robyn_train <- function(InputCollect, hyper_collect,
                         dt_hyper_fixed = NULL,
                         ts_validation = TRUE,
                         add_penalty_factor = FALSE,
-                        rssd_zero_penalty = TRUE,
+                        #rssd_zero_penalty = FALSE,
                         refresh = FALSE, seed = 123,
                         quiet = FALSE) {
   hyper_fixed <- hyper_collect$all_fixed
@@ -308,7 +308,7 @@ robyn_train <- function(InputCollect, hyper_collect,
       dt_hyper_fixed = dt_hyper_fixed,
       ts_validation = ts_validation,
       add_penalty_factor = add_penalty_factor,
-      rssd_zero_penalty = rssd_zero_penalty,
+      #rssd_zero_penalty = rssd_zero_penalty,
       seed = seed,
       quiet = quiet
     )
@@ -344,7 +344,7 @@ robyn_train <- function(InputCollect, hyper_collect,
         intercept_sign = intercept_sign,
         ts_validation = ts_validation,
         add_penalty_factor = add_penalty_factor,
-        rssd_zero_penalty = rssd_zero_penalty,
+        #rssd_zero_penalty = rssd_zero_penalty,
         refresh = refresh,
         trial = ngt,
         seed = seed + ngt,
@@ -403,7 +403,7 @@ robyn_mmm <- function(InputCollect,
                       add_penalty_factor = FALSE,
                       dt_hyper_fixed = NULL,
                       # lambda_fixed = NULL,
-                      rssd_zero_penalty = TRUE,
+                      #rssd_zero_penalty = TRUE,
                       refresh = FALSE,
                       trial = 1L,
                       seed = 123L,
@@ -745,11 +745,11 @@ robyn_mmm <- function(InputCollect,
             if (!refresh) {
               decomp.rssd <- sqrt(sum((dt_decompSpendDist$effect_share - dt_decompSpendDist$spend_share)^2))
               # Penalty for models with more 0-coefficients
-              if (rssd_zero_penalty) {
-                is_0eff <- round(dt_decompSpendDist$effect_share, 4) == 0
-                share_0eff <- sum(is_0eff) / length(dt_decompSpendDist$effect_share)
-                decomp.rssd <- decomp.rssd * (1 + share_0eff)
-              }
+              #if (rssd_zero_penalty) {
+              #  is_0eff <- round(dt_decompSpendDist$effect_share, 4) == 0
+              #  share_0eff <- sum(is_0eff) / length(dt_decompSpendDist$effect_share)
+              #  decomp.rssd <- decomp.rssd * (1 + share_0eff)
+              #}
             } else {
               dt_decompRF <- select(decompCollect$xDecompAgg, .data$rn, decomp_perc = .data$xDecompPerc) %>%
                 left_join(select(xDecompAggPrev, .data$rn, decomp_perc_prev = .data$xDecompPerc),
