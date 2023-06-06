@@ -160,7 +160,7 @@ robyn_run <- function(InputCollect = NULL,
     dt_hyper_fixed = dt_hyper_fixed,
     ts_validation = ts_validation,
     add_penalty_factor = add_penalty_factor,
-    rssd_zero_penalty = rssd_zero_penalty,
+    #rssd_zero_penalty = rssd_zero_penalty,
     refresh, seed, quiet
   )
 
