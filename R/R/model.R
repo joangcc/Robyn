@@ -684,6 +684,7 @@ robyn_mmm <- function(InputCollect,
               intercept = intercept,
               intercept_sign = intercept_sign,
               penalty.factor = penalty.factor,
+              moderator_dependencies = moderator_dependencies
               ...
             )
             decompCollect <- model_decomp(
