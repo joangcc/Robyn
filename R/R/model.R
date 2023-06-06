@@ -1047,6 +1047,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
                         intercept = TRUE,
                         intercept_sign = "non_negative",
                         penalty.factor = rep(1, ncol(y_train)),
+                        moderator_dependencies = NULL,
                         ...) {
   mod <- glmnet(
     x_train,
@@ -1066,7 +1067,8 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
 
   ## Drop intercept if negative and intercept_sign == "non_negative"
   if (intercept_sign == "non_negative" && coef(mod)[1] < 0) {
-    mod <- glmnet(
+    if (!is.null(moderator_dependencies)){
+      mod <- glmnet(
       x_train,
       y_train,
       family = "gaussian",
@@ -1077,8 +1079,15 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       penalty.factor = penalty.factor,
       intercept = FALSE,
       ...
-    ) # coef(mod)
-    df.int <- 0
+      ) # coef(mod)
+      df.int <- 0
+    }else{
+      #CONTINUE HERE BY RETREIVING COEFFICIENTS VALUE FROM mod, detecting coefficient values an refit accordingly if performance_spend  channels are not working.
+      
+      
+      
+    }
+
   } # plot(mod); print(mod)
 
   # Calculate all Adjusted R2
