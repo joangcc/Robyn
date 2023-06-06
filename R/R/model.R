@@ -85,6 +85,7 @@ robyn_run <- function(InputCollect = NULL,
                       intercept = TRUE,
                       intercept_sign = "non_negative",
                       lambda_control = NULL,
+                      moderator_dependencies = NULL,
                       ...) {
   t0 <- Sys.time()
 
