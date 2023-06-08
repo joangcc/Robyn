@@ -1067,7 +1067,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
 
   ## Drop intercept if negative and intercept_sign == "non_negative"
   if (intercept_sign == "non_negative" && coef(mod)[1] < 0) {
-    if (!is.null(moderator_dependencies)){
+    if (is.null(moderator_dependencies)){
       mod <- glmnet(
       x_train,
       y_train,
@@ -1083,7 +1083,18 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       df.int <- 0
     }else{
       #CONTINUE HERE BY RETREIVING COEFFICIENTS VALUE FROM mod, detecting coefficient values an refit accordingly if performance_spend  channels are not working.
+      # Iterate for every required direct effect for a moderator variable
+      for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
+        # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
+        if (coef(mod)[required_effect_attrib] == 0){
+            
+        }
+        
       
+      }
+      
+      
+      coef(mod)
       
       
     }
