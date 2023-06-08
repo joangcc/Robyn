@@ -1091,7 +1091,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         if (coef(mod)[required_effect_attrib] == 0){
           pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) required_effect_attrib %in% x)))
           penalty.factor[pos_penalty_direct] = 0
-          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute))))
+          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute)))
           pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) mod_attrib %in% x)))
           penalty.factor[pos_penalty_mod] = 0                                                             
         }
@@ -1136,7 +1136,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         if (coef(mod)[required_effect_attrib] == 0){
           pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) required_effect_attrib %in% x)))
           penalty.factor[pos_penalty_direct] = 0
-          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute))))
+          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute)))
           pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) mod_attrib %in% x)))
           penalty.factor[pos_penalty_mod] = 0                                                           
         }
