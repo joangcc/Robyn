@@ -1154,10 +1154,10 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ...
       ) # coef(mod)
       df.int <- 1
-  }  
+    }  
     
     # plot(mod); print(mod)
-
+  }
   # Calculate all Adjusted R2
   y_train_pred <- as.vector(predict(mod, s = lambda, newx = x_train))
   rsq_train <- get_rsq(true = y_train, predicted = y_train_pred, p = ncol(x_train), df.int = df.int)
