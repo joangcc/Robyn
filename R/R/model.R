@@ -684,7 +684,9 @@ robyn_mmm <- function(InputCollect,
               intercept = intercept,
               intercept_sign = intercept_sign,
               penalty.factor = penalty.factor,
-              moderator_dependencies = moderator_dependencies
+              moderator_dependencies = moderator_dependencies,
+              dt_modSaturated = dt_modSaturated
+              
               ...
             )
             decompCollect <- model_decomp(
@@ -1048,6 +1050,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
                         intercept_sign = "non_negative",
                         penalty.factor = rep(1, ncol(y_train)),
                         moderator_dependencies = NULL,
+                        dt_mod_saturated = NULL
                         ...) {
   mod <- glmnet(
     x_train,
@@ -1087,19 +1090,74 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
         if (coef(mod)[required_effect_attrib] == 0){
-            
+          pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var)), function(x) required_effect_attrib %in% x))))
+          penalty.factor[pos_penalty_direct] = 0
+          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute))))
+          pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var)), function(x) mod_attrib %in% x))))
+          penalty.factor[pos_penalty_mod] = 0                                                             
         }
-        
-      
       }
-      
-      
-      coef(mod)
+      mod <- glmnet(
+      x_train,
+      y_train,
+      family = "gaussian",
+      alpha = 0, # 0 for ridge regression
+      lambda = lambda,
+      lower.limits = lower.limits,
+      upper.limits = upper.limits,
+      penalty.factor = penalty.factor,
+      intercept = FALSE,
+      ...
+      ) # coef(mod)
+      df.int <- 0
       
       
     }
 
-  } # plot(mod); print(mod)
+  } else {
+  if (is.null(moderator_dependencies)){
+      mod <- glmnet(
+      x_train,
+      y_train,
+      family = "gaussian",
+      alpha = 0, # 0 for ridge regression
+      lambda = lambda,
+      lower.limits = lower.limits,
+      upper.limits = upper.limits,
+      penalty.factor = penalty.factor,
+      intercept = intercept,
+      ...
+      ) # coef(mod)
+      df.int <- 1
+    }else{
+      # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
+      # Iterate for every required direct effect for a moderator variable
+      for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
+        # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
+        if (coef(mod)[required_effect_attrib] == 0){
+          pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var)), function(x) required_effect_attrib %in% x))))
+          penalty.factor[pos_penalty_direct] = 0
+          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute))))
+          pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var)), function(x) mod_attrib %in% x))))
+          penalty.factor[pos_penalty_mod] = 0                                                             
+        }
+      }
+      mod <- glmnet(
+      x_train,
+      y_train,
+      family = "gaussian",
+      alpha = 0, # 0 for ridge regression
+      lambda = lambda,
+      lower.limits = lower.limits,
+      upper.limits = upper.limits,
+      penalty.factor = penalty.factor,
+      intercept = intercept,
+      ...
+      ) # coef(mod)
+      df.int <- 1
+  }  
+    
+    # plot(mod); print(mod)
 
   # Calculate all Adjusted R2
   y_train_pred <- as.vector(predict(mod, s = lambda, newx = x_train))
