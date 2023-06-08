@@ -685,8 +685,7 @@ robyn_mmm <- function(InputCollect,
               intercept_sign = intercept_sign,
               penalty.factor = penalty.factor,
               moderator_dependencies = moderator_dependencies,
-              dt_modSaturated = dt_modSaturated
-              
+              dt_modSaturated = dt_modSaturated,              
               ...
             )
             decompCollect <- model_decomp(
