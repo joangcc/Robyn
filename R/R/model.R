@@ -1056,6 +1056,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
                         moderator_dependencies = NULL,
                         dt_mod_saturated = NULL,
                         ...) {
+  print("model_refit() starts")
   mod <- glmnet(
     x_train,
     y_train,
@@ -1074,7 +1075,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
 
   ## Drop intercept if negative and intercept_sign == "non_negative"
   if (intercept_sign == "non_negative" && coef(mod)[1] < 0) {
+    print("non_negative intercept")
     if (is.null(moderator_dependencies)){
+      print("no moderator_dependencies")
       mod <- glmnet(
       x_train,
       y_train,
@@ -1119,7 +1122,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
     }
 
   } else {
+  print("negative intercept allowed")
   if (is.null(moderator_dependencies)){
+      print("case: moderator_dependencies is null")
       mod <- glmnet(
       x_train,
       y_train,
@@ -1134,6 +1139,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ) # coef(mod)
       df.int <- 1
     }else{
+      print("moderator dependencies exist")
       # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
       # Iterate for every required direct effect for a moderator variable
       for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
