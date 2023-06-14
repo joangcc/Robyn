@@ -1142,9 +1142,16 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       print("moderator dependencies exist")
       # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
       # Iterate for every required direct effect for a moderator variable
+      print("printing moderator_dependencies")
+      print(moderator_dependencies)
       for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
+        print("printing required_effect_attrib")
+        print(required_effect_attrib)
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
+        print("printing value of coef(mod)[required_effect_attrib]")
+        print(coef(mod)[required_effect_attrib])
         if (coef(mod)[required_effect_attrib] == 0){
+          print("detected coef(mod)[required_effect_attrib] == 0")
           pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) required_effect_attrib %in% x)))
           penalty.factor[pos_penalty_direct] = 0
           mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute)))
