@@ -1056,7 +1056,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
                         moderator_dependencies = NULL,
                         dt_mod_saturated = NULL,
                         ...) {
-  print("model_refit() starts")
+  #print("model_refit() starts")
   mod <- glmnet(
     x_train,
     y_train,
@@ -1075,7 +1075,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
 
   ## Drop intercept if negative and intercept_sign == "non_negative"
   if (intercept_sign == "non_negative" && coef(mod)[1] < 0) {
-    print("non_negative intercept")
+    #print("non_negative intercept")
     if (is.null(moderator_dependencies)){
       print("no moderator_dependencies")
       mod <- glmnet(
@@ -1122,9 +1122,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
     }
 
   } else {
-  print("negative intercept allowed")
+  #print("negative intercept allowed")
   if (is.null(moderator_dependencies)){
-      print("case: moderator_dependencies is null")
+      #print("case: moderator_dependencies is null")
       mod <- glmnet(
       x_train,
       y_train,
