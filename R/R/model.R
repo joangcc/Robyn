@@ -1147,9 +1147,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       req_attrib_list <- as.vector(moderator_dependencies$required_effect_attribute)
       print(paste("printing req_attrib_list:", req_attrib_list))
       print(paste("length of req_attrib_list is:", length(req_attrib_list)))
-      for (i in 1:length(req_attrib_list)){
-        print(paste("i is:",i))
-        required_effect_attrib <- req_attrib_list[[i]]
+      i= 0
+      for (required_effect_attrib in seqalong(req_attrib_list)){
+        i= i+1
         print("printing required_effect_attrib")
         print(required_effect_attrib)
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
