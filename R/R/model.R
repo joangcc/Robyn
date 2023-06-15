@@ -1144,7 +1144,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       # Iterate for every required direct effect for a moderator variable
       print("printing moderator_dependencies")
       print(moderator_dependencies)
-      for (required_effect_attrib in list(moderator_dependencies$required_effect_attribute)){
+      req_attrib_list <- list(moderator_dependencies$required_effect_attribute)
+      for (i in 1:length(req_attrib_list){
+        required_effect_attrib <- req_attrib_list[[i]]
         print("printing required_effect_attrib")
         print(required_effect_attrib)
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
