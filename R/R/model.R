@@ -1152,6 +1152,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       i= 0
       for (required_effect_attrib in seq_along(req_attrib_list)){
         i= i+1
+        print(i)
         print("printing required_effect_attrib")
         print(required_effect_attrib)
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
