@@ -1146,7 +1146,8 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       #print("printing moderator_dependencies")
       #print(moderator_dependencies)
       req_attrib_list <- as.vector(moderator_dependencies$required_effect_attribute)
-      #print(paste("printing req_attrib_list:", req_attrib_list))
+      print("printing req_attrib_list:")
+      print(req_attrib_list)
       #print(paste("length of req_attrib_list is:", length(req_attrib_list)))
       i= 0
       for (required_effect_attrib in seq_along(req_attrib_list)){
