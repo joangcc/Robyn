@@ -1092,6 +1092,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ) # coef(mod)
       df.int <- 0
     }else{
+      print("Special case:mod dependencies")
       # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend  channels are not working.
       # Iterate for every required direct effect for a moderator variable
       for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
@@ -1148,7 +1149,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       #print(paste("printing req_attrib_list:", req_attrib_list))
       #print(paste("length of req_attrib_list is:", length(req_attrib_list)))
       #i= 0
-      for (required_effect_attrib in seq_along(req_attrib_list)){
+      #for (required_effect_attrib in seq_along(req_attrib_list)){
         #i= i+1
         #print("printing required_effect_attrib")
         #print(required_effect_attrib)
@@ -1163,7 +1164,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
           #pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) mod_attrib %in% x)))
           #penalty.factor[pos_penalty_mod] = 0                                                           
         #}
-      }
+      #}
       mod <- glmnet(
       x_train,
       y_train,
