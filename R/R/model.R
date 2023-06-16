@@ -1153,19 +1153,20 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       print(i)
       print(seq_along(req_attrib_list))
       for (required_effect_attrib in seq_along(req_attrib_list)){
+        required_effect_name = req_attrib_list[[required_effect_attrib]]
         i= i+1
         print(i)
-        print("printing required_effect_attrib")
-        print(required_effect_attrib)
+        print("printing required_effect_name")
+        print(required_effect_name)
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
         #print("printing value of coef(mod)[required_effect_attrib]")
-        print(coef(mod)[required_effect_attrib])
-        coef(mod)[required_effect_attrib] = 0 # Test condition
-        if (coef(mod)[required_effect_attrib] == 0){
-          print("detected coef(mod)[required_effect_attrib] == 0")
-          pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_modSaturated, -.data$dep_var))), function(x) required_effect_attrib %in% x))) #SHould it be dt_window instead of dt_modSaturated?
+        print(coef(mod)[required_effect_name])
+        coef(mod)[required_effect_name] = 0 # Test condition
+        if (coef(mod)[required_effect_name] == 0){
+          print("detected coef(mod)[required_effect_name] == 0")
+          pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_modSaturated, -.data$dep_var))), function(x) required_effect_name %in% x))) #SHould it be dt_window instead of dt_modSaturated?
           penalty.factor[pos_penalty_direct] = 0
-          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute)))
+          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
           pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) mod_attrib %in% x)))
           penalty.factor[pos_penalty_mod] = 0                                                           
         }
