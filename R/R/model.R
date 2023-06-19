@@ -1150,11 +1150,6 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       print(req_attrib_list)
       print(paste("length of req_attrib_list is:", length(req_attrib_list)))
       print(seq_along(req_attrib_list))
-      #for (required_effect_attrib in seq_along(req_attrib_list)){
-      for (i in 1:3){
-        print (i)
-      }
-    
     
       for (i in 1:length(req_attrib_list)){
         print(i)
