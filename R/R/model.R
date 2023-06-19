@@ -1168,8 +1168,12 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         print("printing coef(mod)[req_effect_col_index]")
         print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
         #coef(mod)[required_effect_name] = 0 # Test condition
+        coef_value = coef(mod)[req_effect_col_index + 1]
+        if (coef_value == 0) {
+           print("detected coef(mod)[required_effect_name] == 0")
+          }
         #if (coef(mod)[required_effect_name] == 0){
-        #  print("detected coef(mod)[required_effect_name] == 0")
+        
         #  pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_modSaturated, -.data$dep_var))), function(x) required_effect_name %in% x))) #SHould it be dt_window instead of dt_modSaturated?
         #  penalty.factor[pos_penalty_direct] = 0
         #  mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
