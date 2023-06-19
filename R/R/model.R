@@ -1146,27 +1146,27 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       #print("printing moderator_dependencies")
       #print(moderator_dependencies)
       req_attrib_list <- as.vector(moderator_dependencies$required_effect_attribute)
-      print("printing req_attrib_list:")
-      print(req_attrib_list)
-      print(paste("length of req_attrib_list is:", length(req_attrib_list)))
-      print(seq_along(req_attrib_list))
-      print("printing coef(mod)")
-      print(coef(mod))
+      #print("printing req_attrib_list:")
+      #print(req_attrib_list)
+      #print(paste("length of req_attrib_list is:", length(req_attrib_list)))
+      #print(seq_along(req_attrib_list))
+      #print("printing coef(mod)")
+      #print(coef(mod))
     
       for (i in 1:length(req_attrib_list)){
-        print(i)
+        #print(i)
         required_effect_name = req_attrib_list[i]
-        print("printing required_effect_name")
-        print(required_effect_name)
+        #print("printing required_effect_name")
+        #print(required_effect_name)
         req_effect_col_index = which(colnames(InputCollect$dt_mod[,!colnames(InputCollect$dt_mod) %in% c("ds","dep_var")])==required_effect_name)
-        print("printing req_effect_col_index")
+        #print("printing req_effect_col_index")
 
         
         # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
         #print("printing value of coef(mod)[required_effect_attrib]")
         #print(coef(mod)[required_effect_name])
-        print("printing coef(mod)[req_effect_col_index]")
-        print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
+        #print("printing coef(mod)[req_effect_col_index]")
+        #print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
         #coef(mod)[required_effect_name] = 0 # Test condition
         coef_value = coef(mod)[req_effect_col_index + 1]
         if (coef_value == 0) {
