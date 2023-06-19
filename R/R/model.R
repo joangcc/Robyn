@@ -1174,8 +1174,12 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
            mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
            pos_penalty_direct = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==required_effect_name)
            pos_penalty_mod = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==mod_attrib)
+           print("penalty.factor before modification")
+           print(penalty.factor)
            penalty.factor[pos_penalty_direct] = 0
            penalty.factor[pos_penalty_mod] = 0
+           print("penalty.factor after modification")
+           print(penalty.factor)
           }
         #if (coef(mod)[required_effect_name] == 0){
         
