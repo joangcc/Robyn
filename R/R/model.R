@@ -1077,7 +1077,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
   if (intercept_sign == "non_negative" && coef(mod)[1] < 0) {
     #print("non_negative intercept")
     if (is.null(moderator_dependencies)){
-      print("no moderator_dependencies")
+      print("case: non_neg intercept; no moderator_dependencies")
       mod <- glmnet(
       x_train,
       y_train,
@@ -1092,7 +1092,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ) # coef(mod)
       df.int <- 0
     }else{
-      print("Special case:mod dependencies")
+      print("Special case:non_neg intercep; mod dependencies")
       # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend  channels are not working.
       # Iterate for every required direct effect for a moderator variable
       for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
@@ -1123,9 +1123,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
     }
 
   } else {
-  #print("negative intercept allowed")
+  print("negative intercept allowed")
   if (is.null(moderator_dependencies)){
-      #print("case: moderator_dependencies is null")
+      print("case: moderator_dependencies is null")
       mod <- glmnet(
       x_train,
       y_train,
@@ -1140,10 +1140,10 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ) # coef(mod)
       df.int <- 1
     }else{
-      #print("moderator dependencies exist")
+      print("moderator dependencies exist")
       # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
       # Iterate for every required direct effect for a moderator variable
-      #print("printing moderator_dependencies")
+      print("printing moderator_dependencies")
       #print(moderator_dependencies)
       req_attrib_list <- as.vector(moderator_dependencies$required_effect_attribute)
       #print("printing req_attrib_list:")
