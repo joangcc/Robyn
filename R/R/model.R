@@ -1054,7 +1054,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
                         intercept_sign = "non_negative",
                         penalty.factor = rep(1, ncol(y_train)),
                         moderator_dependencies = NULL,
-                        dt_mod_saturated = NULL,
+                        dt_modSaturated = NULL,
                         ...) {
   #print("model_refit() starts")
   mod <- glmnet(
