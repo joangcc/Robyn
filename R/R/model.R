@@ -1166,7 +1166,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         #print("printing value of coef(mod)[required_effect_attrib]")
         #print(coef(mod)[required_effect_name])
         print("printing coef(mod)[req_effect_col_index]")
-        print(coef(mod)[req_effect_col_index])
+        print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
         #coef(mod)[required_effect_name] = 0 # Test condition
         #if (coef(mod)[required_effect_name] == 0){
         #  print("detected coef(mod)[required_effect_name] == 0")
