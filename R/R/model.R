@@ -1156,8 +1156,8 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       for (i in 1:length(req_attrib_list)){
         #print(i)
         required_effect_name = req_attrib_list[i]
-        #print("printing required_effect_name")
-        #print(required_effect_name)
+        print("printing required_effect_name")
+        print(required_effect_name)
         req_effect_col_index = which(colnames(InputCollect$dt_mod[,!colnames(InputCollect$dt_mod) %in% c("ds","dep_var")])==required_effect_name)
         #print("printing req_effect_col_index")
 
