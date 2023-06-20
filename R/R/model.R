@@ -1162,11 +1162,11 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         #print("printing req_effect_col_index")
 
         
-        # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
+        # Check whether required direct effect within mod object is null. If that's the case, then penalize both the moderator and the direct effect to 0.
         #print("printing value of coef(mod)[required_effect_attrib]")
         #print(coef(mod)[required_effect_name])
-        #print("printing coef(mod)[req_effect_col_index]")
-        #print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
+        print("printing coef(mod)[req_effect_col_index + 1]")
+        print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
         #coef(mod)[required_effect_name] = 0 # Test condition
         coef_value = coef(mod)[req_effect_col_index + 1]
         if (coef_value == 0) {
