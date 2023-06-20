@@ -1092,19 +1092,25 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ) # coef(mod)
       df.int <- 0
     }else{
-      #print("Special case:non_neg intercep; mod dependencies")
-      # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend  channels are not working.
+    #print("moderator dependencies exist")
       # Iterate for every required direct effect for a moderator variable
-      for (required_effect_attrib in moderator_dependencies$required_effect_attribute){
-        # Check whether required direct effect within mod object is null. If that's the case, then penalize botht he moderator and the direct effect to 0.
-        if (coef(mod)[required_effect_attrib] == 0){
-          pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) required_effect_attrib %in% x)))
-          penalty.factor[pos_penalty_direct] = 0
-          mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_attrib), select=c(moderator_attribute)))
-          pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_modSaturated, -.data$dep_var))), function(x) mod_attrib %in% x))) # Should it be dt_window instead of dt_modSaturated?
-          penalty.factor[pos_penalty_mod] = 0                                                             
+      req_attrib_list <- as.vector(moderator_dependencies$required_effect_attribute)
+    
+      for (i in 1:length(req_attrib_list)){
+        required_effect_name = req_attrib_list[i]
+        req_effect_col_index = which(colnames(InputCollect$dt_mod[,!colnames(InputCollect$dt_mod) %in% c("ds","dep_var")])==required_effect_name)
+        # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
+        coef_value = coef(mod)[req_effect_col_index + 1]
+        if (coef_value == 0) {
+          #Required direct effect tfor moderator effect to be meaningful is 0. Therefore, set both the direct effect and the moderator effect coefficients to 0. We do so by setting the input values of both variables as 0.
+           #print("printing required_effect_name")
+           #print(required_effect_name)
+           mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
+           x_train[,required_effect_name] <- 0
+           x_train[,mod_attrib] <- 0
+           #show_new_coef_mod = 1
+          }
         }
-      }
       mod <- glmnet(
       x_train,
       y_train,
@@ -1123,9 +1129,9 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
     }
 
   } else {
-  #print("negative intercept allowed")
+  # Negative intercept allowed
   if (is.null(moderator_dependencies)){
-      #print("case: moderator_dependencies is null")
+    # No moderator dependencies
       mod <- glmnet(
       x_train,
       y_train,
@@ -1141,63 +1147,23 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       df.int <- 1
     }else{
       #print("moderator dependencies exist")
-      # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
       # Iterate for every required direct effect for a moderator variable
-      #print("printing moderator_dependencies")
-      #print(moderator_dependencies)
       req_attrib_list <- as.vector(moderator_dependencies$required_effect_attribute)
-      #print("printing req_attrib_list:")
-      #print(req_attrib_list)
-      #print(paste("length of req_attrib_list is:", length(req_attrib_list)))
-      #print(seq_along(req_attrib_list))
-      #print("printing coef(mod)")
-      #print(coef(mod))
-
-      show_new_coef_mod = 0
     
       for (i in 1:length(req_attrib_list)){
-        #print(i)
         required_effect_name = req_attrib_list[i]
-        #print("printing required_effect_name")
-        #print(required_effect_name)
         req_effect_col_index = which(colnames(InputCollect$dt_mod[,!colnames(InputCollect$dt_mod) %in% c("ds","dep_var")])==required_effect_name)
-        #print("printing req_effect_col_index")
-
-        
-        # Check whether required direct effect within mod object is null. If that's the case, then penalize both the moderator and the direct effect to 0.
-        #print("printing value of coef(mod)[required_effect_attrib]")
-        #print(coef(mod)[required_effect_name])
-        #print("printing coef(mod)[req_effect_col_index + 1]")
-        #print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
-        #coef(mod)[required_effect_name] = 0 # Test condition
+        # Retrieve coeff values from mod, detecting coefficient values an refit accordingly if performance_spend channels are not working.
         coef_value = coef(mod)[req_effect_col_index + 1]
         if (coef_value == 0) {
-          
-           #print("detected coef(mod)[required_effect_name] == 0")
-           print("printing required_effect_name")
-           print(required_effect_name)
+          #Required direct effect tfor moderator effect to be meaningful is 0. Therefore, set both the direct effect and the moderator effect coefficients to 0. We do so by setting the input values of both variables as 0.
+           #print("printing required_effect_name")
+           #print(required_effect_name)
            mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
-          #DEPRECATED OPTION: modify penalty.factor 
-          #pos_penalty_direct = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==required_effect_name)
-           #pos_penalty_mod = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==mod_attrib)
-           #print("penalty.factor before modification")
-           #print(penalty.factor)
-           #penalty.factor[pos_penalty_direct] = 0
-           #penalty.factor[pos_penalty_mod] = 0
-           #print("penalty.factor after modification")
-           #print(penalty.factor)
-          x_train[,required_effect_name] <- 0
-          x_train[,mod_attrib] <- 0
-           show_new_coef_mod = 1
+           x_train[,required_effect_name] <- 0
+           x_train[,mod_attrib] <- 0
+           #show_new_coef_mod = 1
           }
-        #if (coef(mod)[required_effect_name] == 0){
-        
-        #  pos_penalty_direct = as.integer(which(sapply(names(lares::ohse(select(dt_modSaturated, -.data$dep_var))), function(x) required_effect_name %in% x))) #SHould it be dt_window instead of dt_modSaturated?
-        #  penalty.factor[pos_penalty_direct] = 0
-        #  mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
-       #  pos_penalty_mod = as.integer(which(sapply(names(lares::ohse(select(dt_window, -.data$dep_var))), function(x) mod_attrib %in% x)))
-        #  penalty.factor[pos_penalty_mod] = 0                                                           
-        #}
       }
       mod <- glmnet(
       x_train,
@@ -1211,12 +1177,12 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       intercept = intercept,
       ...
       ) # coef(mod)
-      if (show_new_coef_mod == 1){
+      #if (show_new_coef_mod == 1){
         #print("printing coef(mod) after applying penalty.factor")
         #print(coef(mod))
-        print("printing x_train after modifications")
-        print(x_train)
-      }
+        #print("printing x_train after modifications")
+        #print(x_train)
+      #}
       df.int <- 1
     }  
     
