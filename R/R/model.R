@@ -1156,8 +1156,8 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       for (i in 1:length(req_attrib_list)){
         #print(i)
         required_effect_name = req_attrib_list[i]
-        print("printing required_effect_name")
-        print(required_effect_name)
+        #print("printing required_effect_name")
+        #print(required_effect_name)
         req_effect_col_index = which(colnames(InputCollect$dt_mod[,!colnames(InputCollect$dt_mod) %in% c("ds","dep_var")])==required_effect_name)
         #print("printing req_effect_col_index")
 
@@ -1165,12 +1165,14 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         # Check whether required direct effect within mod object is null. If that's the case, then penalize both the moderator and the direct effect to 0.
         #print("printing value of coef(mod)[required_effect_attrib]")
         #print(coef(mod)[required_effect_name])
-        print("printing coef(mod)[req_effect_col_index + 1]")
-        print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
+        #print("printing coef(mod)[req_effect_col_index + 1]")
+        #print(coef(mod)[req_effect_col_index + 1])  #Adding +1 to offset new row added by intercept
         #coef(mod)[required_effect_name] = 0 # Test condition
         coef_value = coef(mod)[req_effect_col_index + 1]
         if (coef_value == 0) {
            #print("detected coef(mod)[required_effect_name] == 0")
+           print("printing required_effect_name")
+           print(required_effect_name)
            mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
            pos_penalty_direct = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==required_effect_name)
            pos_penalty_mod = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==mod_attrib)
