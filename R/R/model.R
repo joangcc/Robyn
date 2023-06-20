@@ -1152,6 +1152,8 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       #print(seq_along(req_attrib_list))
       #print("printing coef(mod)")
       #print(coef(mod))
+
+      show_new_coef_mod = 0
     
       for (i in 1:length(req_attrib_list)){
         #print(i)
@@ -1170,6 +1172,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
         #coef(mod)[required_effect_name] = 0 # Test condition
         coef_value = coef(mod)[req_effect_col_index + 1]
         if (coef_value == 0) {
+          
            #print("detected coef(mod)[required_effect_name] == 0")
            print("printing required_effect_name")
            print(required_effect_name)
@@ -1182,6 +1185,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
            penalty.factor[pos_penalty_mod] = 0
            print("penalty.factor after modification")
            print(penalty.factor)
+           show_new_coef_mod = 1
           }
         #if (coef(mod)[required_effect_name] == 0){
         
@@ -1204,8 +1208,10 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       intercept = intercept,
       ...
       ) # coef(mod)
-      print("printing coef(mod) after applying penalty.factor")
-      print(coef(mod))
+      if (show_new_coef_mod == 1){
+        print("printing coef(mod) after applying penalty.factor")
+        print(coef(mod))
+      }
       df.int <- 1
     }  
     
