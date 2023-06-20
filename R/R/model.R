@@ -1177,14 +1177,17 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
            print("printing required_effect_name")
            print(required_effect_name)
            mod_attrib = as.character(subset(moderator_dependencies, (required_effect_attribute == required_effect_name), select=c(moderator_attribute)))
-           pos_penalty_direct = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==required_effect_name)
-           pos_penalty_mod = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==mod_attrib)
-           print("penalty.factor before modification")
-           print(penalty.factor)
-           penalty.factor[pos_penalty_direct] = 0
-           penalty.factor[pos_penalty_mod] = 0
-           print("penalty.factor after modification")
-           print(penalty.factor)
+          #DEPRECATED OPTION: modify penalty.factor 
+          #pos_penalty_direct = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==required_effect_name)
+           #pos_penalty_mod = which(colnames(dt_modSaturated[,!colnames(dt_modSaturated) %in% c("dep_var")])==mod_attrib)
+           #print("penalty.factor before modification")
+           #print(penalty.factor)
+           #penalty.factor[pos_penalty_direct] = 0
+           #penalty.factor[pos_penalty_mod] = 0
+           #print("penalty.factor after modification")
+           #print(penalty.factor)
+          x_train[,required_effect_name] <- 0
+          x_train[,mod_attrib] <- 0
            show_new_coef_mod = 1
           }
         #if (coef(mod)[required_effect_name] == 0){
@@ -1211,7 +1214,7 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       if (show_new_coef_mod == 1){
         #print("printing coef(mod) after applying penalty.factor")
         #print(coef(mod))
-        print("printing x_train")
+        print("printing x_train after modifications")
         print(x_train)
       }
       df.int <- 1
