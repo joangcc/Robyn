@@ -1209,8 +1209,10 @@ model_refit <- function(x_train, y_train, x_val, y_val, x_test, y_test,
       ...
       ) # coef(mod)
       if (show_new_coef_mod == 1){
-        print("printing coef(mod) after applying penalty.factor")
-        print(coef(mod))
+        #print("printing coef(mod) after applying penalty.factor")
+        #print(coef(mod))
+        print("printing x_train")
+        print(x_train)
       }
       df.int <- 1
     }  
