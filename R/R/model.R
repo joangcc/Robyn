@@ -751,13 +751,14 @@ robyn_mmm <- function(InputCollect,
               by = "rn"
             )
             if (!refresh) {
-              decomp.rssd <- sqrt(sum((dt_decompSpendDist$effect_share - dt_decompSpendDist$spend_share)^2))
+              #decomp.rssd <- sqrt(sum((dt_decompSpendDist$effect_share - dt_decompSpendDist$spend_share)^2))
+              decomp.rssd = 0
               # Penalty for models with more 0-coefficients
-              #if (rssd_zero_penalty) {
-              #  is_0eff <- round(dt_decompSpendDist$effect_share, 4) == 0
-              #  share_0eff <- sum(is_0eff) / length(dt_decompSpendDist$effect_share)
-              #  decomp.rssd <- decomp.rssd * (1 + share_0eff)
-              #}
+              if (rssd_zero_penalty) {
+               is_0eff <- round(dt_decompSpendDist$effect_share, 4) == 0
+               share_0eff <- sum(is_0eff) / length(dt_decompSpendDist$effect_share)
+               decomp.rssd <- decomp.rssd * (1 + share_0eff)
+              }
             } else {
               dt_decompRF <- select(decompCollect$xDecompAgg, .data$rn, decomp_perc = .data$xDecompPerc) %>%
                 left_join(select(xDecompAggPrev, .data$rn, decomp_perc_prev = .data$xDecompPerc),
@@ -863,13 +864,13 @@ robyn_mmm <- function(InputCollect,
           if (!hyper_fixed) {
             if (is.null(calibration_input)) {
               for (co in 1:iterPar) {
-#                 optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co]))
-                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], 0))
+                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co]))
+                # optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], 0))
               }
             } else {
               for (co in 1:iterPar) {
-#                 optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co], mape.lift.collect[co]))
-                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], 0, mape.lift.collect[co]))
+                optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], decomp.rssd.collect[co], mape.lift.collect[co]))
+                # optimizer$tell(nevergrad_hp[[co]], tuple(nrmse.collect[co], 0, mape.lift.collect[co]))
               }
             }
           }
