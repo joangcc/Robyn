@@ -13,14 +13,17 @@ robyn_run(
   add_penalty_factor = FALSE,
   refresh = FALSE,
   seed = 123L,
-  outputs = FALSE,
   quiet = FALSE,
   cores = NULL,
   trials = 5,
   iterations = 2000,
+  rssd_zero_penalty = TRUE,
+  objective_weights = NULL,
   nevergrad_algo = "TwoPointsDE",
+  intercept = TRUE,
   intercept_sign = "non_negative",
   lambda_control = NULL,
+  outputs = FALSE,
   ...
 )
 
@@ -55,8 +58,6 @@ more iterations to converge.}
 
 \item{seed}{Integer. For reproducible results when running nevergrad.}
 
-\item{outputs}{Boolean. Process results with \code{robyn_outputs()}?}
-
 \item{quiet}{Boolean. Keep messages off?}
 
 \item{cores}{Integer. Default to \code{parallel::detectCores() - 1} (all cores
@@ -68,10 +69,24 @@ except one). Set to 1 if you want to turn parallel computing off.}
 \item{iterations}{Integer. Recommended 2000 for default when using
 \code{nevergrad_algo = "TwoPointsDE"}.}
 
+\item{rssd_zero_penalty}{Boolean. When TRUE, the objective function
+DECOMP.RSSD will penalize models with more 0 media effects additionally.
+In other words, given the same DECOMP.RSSD score, a model with 50\% 0-coef
+variables will get penalized by DECOMP.RSSD * 1.5 (larger error), while
+another model with no 0-coef variables gets un-penalized with DECOMP.RSSD * 1.}
+
+\item{objective_weights}{Numeric. Default to NULL that gives equal weights
+to all objective functions. Set c(2, 1) to give double weight to the 1st.
+This is an experimental feature. There's no research on optimal weight
+setting. Subjective weights might strongly bias modelling result.}
+
 \item{nevergrad_algo}{Character. Default to "TwoPointsDE". Options are
 \code{c("DE","TwoPointsDE", "OnePlusOne", "DoubleFastGADiscreteOnePlusOne",
 "DiscreteOnePlusOne", "PortfolioDiscreteOnePlusOne", "NaiveTBPSA",
 "cGA", "RandomSearch")}.}
+
+\item{intercept}{Boolean. Should intercept(s) be fitted (default=TRUE) or
+set to zero (FALSE).}
 
 \item{intercept_sign}{Character. Choose one of "non_negative" (default) or
 "unconstrained". By default, if intercept is negative, Robyn will drop intercept
@@ -79,6 +94,10 @@ and refit the model. Consider changing intercept_sign to "unconstrained" when
 there are \code{context_vars} with large positive values.}
 
 \item{lambda_control}{Deprecated in v3.6.0.}
+
+\item{outputs}{Boolean. If set to TRUE, will run \code{robyn_run()} and
+\code{robyn_outputs()}, returning a list with OutputModels and
+OutputCollect results.}
 
 \item{...}{Additional parameters passed to \code{robyn_outputs()}.}
 
@@ -97,12 +116,11 @@ runs \code{robyn_mmm()}, and collects all modeling results.
 \examples{
 \dontrun{
 # Having InputCollect results
-OutputCollect <- robyn_run(
+OutputModels <- robyn_run(
   InputCollect = InputCollect,
   cores = 2,
   iterations = 200,
-  trials = 1,
-  outputs = FALSE
+  trials = 1
 )
 }
 }

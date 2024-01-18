@@ -25,7 +25,10 @@ Sys.setenv(RETICULATE_PYTHON = "~/.virtualenvs/r-reticulate/bin/python")
 # 5. Check python path
 py_config() # If the first path is not as 4, do 6
 # 6. Restart R session, run #4 first, then load library("reticulate"), check
-#    py_config() again, python should have path as in #4
+#    py_config() again, python should have path as in #4.
+#    If you see: "NOTE: Python version was forced by RETICULATE_PYTHON_FALLBACK"
+#    if you're using RStudio, go to Global Options > Python, and uncheck the
+#    box for "Automatically activate project-local Python environments".
 # 7. Install numpy if py_config shows it's not available
 py_install("numpy", pip = TRUE)
 # 8. Install nevergrad
@@ -35,9 +38,10 @@ py_install("nevergrad", pip = TRUE)
 #    path before loading Robyn
 # 11. Alternatively, add the line RETICULATE_PYTHON = "~/.virtualenvs/r-reticulate/bin/python"
 #    in the file Renviron in the the R directory to force R to always use this path by
-#    default. Run R.home() to check R path, then look for file "Renviron". This way, you
-#    don't need to run #4 everytime. Note that forcing this path impacts other R instances
-#    that requires different Python versions
+#    default. One way to create and edit the Renviron file is to install the package "usethis" and run
+#    the function usethis::edit_r_environ(). For Unix/Mac, there's also another Renviron file
+#    located at path "/Library/Frameworks/R.framework/Resources/etc/". Add the line from above to this file.
+#    This way, you don't need to run #4 everytime. Restart R session after editing.
 
 #### Option 2: nevergrad installation via conda
 # 1. load reticulate
@@ -65,9 +69,10 @@ conda_install("r-reticulate", "nevergrad", pip=TRUE)
 #    path before loading Robyn
 # 12. Alternatively, add the line RETICULATE_PYTHON = "~/Library/r-miniconda-arm64/envs/r-reticulate/bin/python"
 #    in the file Renviron in the the R directory to force R to always use this path by
-#    default. Run R.home() to check R path, then look for file "Renviron". This way, you
-#    don't need to run #5 everytime. Note that forcing this path impacts other R instances
-#    that requires different Python versions
+#    default. One way to create and edit the Renviron file is to install the package "usethis" and run
+#    the function usethis::edit_r_environ(). For Unix/Mac, there's also another Renviron file
+#    located at path "/Library/Frameworks/R.framework/Resources/etc/". Add the line from above to this file.
+#    This way, you don't need to run #5 everytime. Restart R session after editing.
 
 #### Known potential issues when installing nevergrad and possible fixes
 # Fix SSL issue: reticulate:::rm_all_reticulate_state()

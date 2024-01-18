@@ -6,7 +6,7 @@
 ############# Auxiliary non-exported functions #############
 
 OPTS_PDN <- c("positive", "negative", "default")
-HYPS_NAMES <- c("thetas", "shapes", "scales", "alphas", "gammas")
+HYPS_NAMES <- c("thetas", "shapes", "scales", "alphas", "gammas", "penalty")
 HYPS_OTHERS <- c("lambda", "train_size")
 LEGACY_PARAMS <- c("cores", "iterations", "trials", "intercept_sign", "nevergrad_algo")
 
@@ -31,14 +31,29 @@ check_nas <- function(df) {
   }
 }
 
-check_novar <- function(dt_input) {
+check_novar <- function(dt_input, InputCollect = NULL) {
   novar <- lares::zerovar(dt_input)
   if (length(novar) > 0) {
-    stop(sprintf(
-      "There are %s column(s) with no-variance: %s. \nPlease, remove them to proceed",
+    msg <- sprintf(
+      "There are %s column(s) with no-variance: %s. \nPlease, remove the variable(s) to proceed...",
       length(novar), v2t(novar)
-    ))
+    )
+    if (!is.null(InputCollect)) {
+      msg <- sprintf(
+        "%s\n>>> Note: there's no variance on these variables because of the modeling window filter (%s:%s)",
+        msg,
+        InputCollect$window_start,
+        InputCollect$window_end
+      )
+    }
+    stop(msg)
   }
+}
+
+check_allneg <- function(df) {
+  all_negative <- unlist(lapply(df, function(x) all(x <= 0)))
+  df <- mutate_at(df, names(which(all_negative)), function(x) abs(x))
+  return(df)
 }
 
 check_varnames <- function(dt_input, dt_holidays,
@@ -154,20 +169,32 @@ check_prophet <- function(dt_holidays, prophet_country, prophet_vars, prophet_si
   if (is.null(dt_holidays) || is.null(prophet_vars)) {
     return(invisible(NULL))
   } else {
+    prophet_vars <- tolower(prophet_vars)
     opts <- c("trend", "season", "monthly", "weekday", "holiday")
+    if (!"holiday" %in% prophet_vars) {
+      if (!is.null(prophet_country)) {
+        warning(paste(
+          "Input 'prophet_country' is defined as", prophet_country,
+          "but 'holiday' is not setup within 'prophet_vars' parameter"
+        ))
+      }
+      prophet_country <- NULL
+    }
     if (!all(prophet_vars %in% opts)) {
       stop("Allowed values for 'prophet_vars' are: ", paste(opts, collapse = ", "))
     }
     if ("weekday" %in% prophet_vars && dayInterval > 7) {
       warning("Ignoring prophet_vars = 'weekday' input given your data granularity")
     }
-    if (is.null(prophet_country) || length(prophet_country) > 1 |
-      !prophet_country %in% unique(dt_holidays$country)) {
+    if ("holiday" %in% prophet_vars && (
+      is.null(prophet_country) || length(prophet_country) > 1 |
+        isTRUE(!prophet_country %in% unique(dt_holidays$country)))) {
       stop(paste(
         "You must provide 1 country code in 'prophet_country' input.",
         length(unique(dt_holidays$country)), "countries are included:",
         paste(unique(dt_holidays$country), collapse = ", "),
-        "\nIf your country is not available, please manually add it to 'dt_holidays'"
+        "\nIf your country is not available, manually include data to 'dt_holidays'",
+        "or remove 'holidays' from 'prophet_vars' input."
       ))
     }
     if (is.null(prophet_signs)) {
@@ -420,9 +447,12 @@ check_windows <- function(dt_input, date_var, all_media, window_start, window_en
 }
 
 check_adstock <- function(adstock) {
+  if (is.null(adstock)) {
+    stop("Input 'adstock' can't be NULL. Set any of: 'geometric', 'weibull_cdf' or 'weibull_pdf'")
+  }
   if (adstock == "weibull") adstock <- "weibull_cdf"
   if (!adstock %in% c("geometric", "weibull_cdf", "weibull_pdf")) {
-    stop("'adstock' must be 'geometric', 'weibull_cdf' or 'weibull_pdf'")
+    stop("Input 'adstock' must be 'geometric', 'weibull_cdf' or 'weibull_pdf'")
   }
   return(adstock)
 }
@@ -630,6 +660,26 @@ check_calibration <- function(dt_input, date_var, calibration_input, dayInterval
   return(calibration_input)
 }
 
+check_obj_weight <- function(calibration_input, objective_weights, refresh) {
+  obj_len <- ifelse(is.null(calibration_input), 2, 3)
+  if (!is.null(objective_weights)) {
+    if ((length(objective_weights) != obj_len)) {
+      stop(paste0("objective_weights must have length of ", obj_len))
+    }
+    if (any(objective_weights < 0) | any(objective_weights > 10)) {
+      stop("objective_weights must be >= 0 & <= 10")
+    }
+  }
+  if (is.null(objective_weights) & refresh) {
+    if (obj_len == 2) {
+      objective_weights <- c(1, 10)
+    } else {
+      objective_weights <- c(1, 10, 10)
+    }
+  }
+  return(objective_weights)
+}
+
 check_iteration <- function(calibration_input, iterations, trials, hyps_fixed, refresh) {
   if (!refresh) {
     if (!hyps_fixed) {
@@ -780,8 +830,6 @@ check_class <- function(x, object) {
 
 check_allocator_constrains <- function(low, upr) {
   max_length <- max(c(length(low), length(upr)))
-  if (length(low) == 1) low <- rep(low, max_length)
-  if (length(upr) == 1) upr <- rep(upr, max_length)
   if (any(low < 0)) {
     stop("Inputs 'channel_constr_low' must be >= 0")
   }
@@ -802,35 +850,30 @@ check_allocator <- function(OutputCollect, select_model, paid_media_spends, scen
       paste(OutputCollect$allSolutions, collapse = ", ")
     )
   }
-  if (any(channel_constr_up > 5)) {
-    warning("Inputs 'channel_constr_up' > 5 might cause unrealistic allocation")
-  }
-  if ("max_response_expected_spend" %in% scenario) {
-    stop(paste(
-      "Scenario 'max_response_expected_spend' has been deprecated.",
-      "Use scenario = 'max_historical_response' and new 'total_budget' parameter instead."
-    ))
-  }
-  opts <- "max_historical_response" # Deprecated: max_response_expected_spend
+  if ("max_historical_response" %in% scenario) scenario <- "max_response"
+  opts <- c("max_response", "target_efficiency") # Deprecated: max_response_expected_spend
   if (!(scenario %in% opts)) {
     stop("Input 'scenario' must be one of: ", paste(opts, collapse = ", "))
   }
-  if (length(channel_constr_low) != 1 && length(channel_constr_low) != length(paid_media_spends)) {
-    stop(paste(
-      "Input 'channel_constr_low' have to contain either only 1",
-      "value or have same length as 'InputCollect$paid_media_spends':", length(paid_media_spends)
-    ))
-  }
-  if (length(channel_constr_up) != 1 && length(channel_constr_up) != length(paid_media_spends)) {
-    stop(paste(
-      "Input 'channel_constr_up' have to contain either only 1",
-      "value or have same length as 'InputCollect$paid_media_spends':", length(paid_media_spends)
-    ))
+  if (!(scenario == "target_efficiency" & is.null(channel_constr_low) & is.null(channel_constr_up))) {
+    if (length(channel_constr_low) != 1 && length(channel_constr_low) != length(paid_media_spends)) {
+      stop(paste(
+        "Input 'channel_constr_low' have to contain either only 1",
+        "value or have same length as 'InputCollect$paid_media_spends':", length(paid_media_spends)
+      ))
+    }
+    if (length(channel_constr_up) != 1 && length(channel_constr_up) != length(paid_media_spends)) {
+      stop(paste(
+        "Input 'channel_constr_up' have to contain either only 1",
+        "value or have same length as 'InputCollect$paid_media_spends':", length(paid_media_spends)
+      ))
+    }
   }
   opts <- c("eq", "ineq")
   if (!(constr_mode %in% opts)) {
     stop("Input 'constr_mode' must be one of: ", paste(opts, collapse = ", "))
   }
+  return(scenario)
 }
 
 check_metric_type <- function(metric_name, paid_media_spends, paid_media_vars, exposure_vars, organic_vars) {
@@ -857,15 +900,16 @@ check_metric_dates <- function(date_range = NULL, all_dates, dayInterval = NULL,
   ## default using latest 30 days / 4 weeks / 1 month for spend level
   if (is.null(date_range)) {
     if (is.null(dayInterval)) stop("Input 'date_range' or 'dayInterval' must be defined")
-    if (!is_allocator) {
-      date_range <- "last_1"
-    } else {
-      date_range <- paste0("last_", dplyr::case_when(
-        dayInterval == 1 ~ 30,
-        dayInterval == 7 ~ 4,
-        dayInterval >= 30 & dayInterval <= 31 ~ 1,
-      ))
-    }
+    # if (!is_allocator) {
+    #   date_range <- "last_1"
+    # } else {
+    #   date_range <- paste0("last_", case_when(
+    #     dayInterval == 1 ~ 30,
+    #     dayInterval == 7 ~ 4,
+    #     dayInterval >= 30 & dayInterval <= 31 ~ 1,
+    #   ))
+    # }
+    date_range = "all"
     if (!quiet) message(sprintf("Automatically picked date_range = '%s'", date_range))
   }
   if (grepl("last|all", date_range[1])) {

@@ -36,6 +36,7 @@
 #' @inheritParams robyn_allocator
 #' @inheritParams robyn_outputs
 #' @inheritParams robyn_inputs
+#' @inheritParams robyn_outputs
 #' @param dt_input data.frame. Should include all previous data and newly added
 #' data for the refresh.
 #' @param dt_holidays data.frame. Raw input holiday data. Load standard
@@ -109,6 +110,7 @@ robyn_refresh <- function(json_file = NULL,
                           version_prompt = FALSE,
                           export = TRUE,
                           calibration_input = NULL,
+                          objective_weights = NULL,
                           ...) {
   refreshControl <- TRUE
   while (refreshControl) {
@@ -120,10 +122,12 @@ robyn_refresh <- function(json_file = NULL,
     if (!is.null(json_file)) {
       Robyn <- list()
       json <- robyn_read(json_file, step = 2, quiet = TRUE)
+      if (is.null(plot_folder)) plot_folder <- json$ExportedModel$plot_folder
       listInit <- suppressWarnings(robyn_recreate(
         json_file = json_file,
         dt_input = dt_input,
         dt_holidays = dt_holidays,
+        plot_folder = plot_folder,
         quiet = FALSE, ...
       ))
       listInit$InputCollect$refreshSourceID <- json$ExportedModel$select_model
@@ -132,13 +136,12 @@ robyn_refresh <- function(json_file = NULL,
       listInit$InputCollect$refreshDepth <- refreshDepth <- length(attr(chainData, "chain"))
       listInit$OutputCollect$hyper_updated <- json$ExportedModel$hyper_updated
       Robyn[["listInit"]] <- listInit
-      objectPath <- json$ExportedModel$plot_folder
       refreshCounter <- 1 # Dummy for now (legacy)
     }
     if (!is.null(robyn_object)) {
       RobynImported <- robyn_load(robyn_object)
       Robyn <- RobynImported$Robyn
-      objectPath <- RobynImported$objectPath
+      plot_folder <- RobynImported$objectPath
       robyn_object <- RobynImported$robyn_object
       refreshCounter <- length(Robyn) - sum(names(Robyn) == "refresh")
       refreshDepth <- NULL # Dummy for now (legacy)
@@ -174,12 +177,12 @@ robyn_refresh <- function(json_file = NULL,
       InputCollectRF <- Robyn[[listName]][["InputCollect"]]
       listOutputPrev <- Robyn[[listName]][["OutputCollect"]]
       listReportPrev <- Robyn[[listName]][["ReportCollect"]]
-      ## Model selection from previous build
+      ## Model selection from previous build (new normalization range for error_score)
       if (!"error_score" %in% names(listOutputPrev$resultHypParam)) {
         listOutputPrev$resultHypParam <- as.data.frame(listOutputPrev$resultHypParam) %>%
-          mutate(error_score = errors_scores(.))
+          mutate(error_score = errors_scores(., ts_validation = listOutputPrev$OutputModels$ts_validation, ...))
       }
-      which_bestModRF <- which.max(listOutputPrev$resultHypParam$error_score)[1]
+      which_bestModRF <- which.min(listOutputPrev$resultHypParam$error_score)[1]
       listOutputPrev$resultHypParam <- listOutputPrev$resultHypParam[which_bestModRF, ]
       listOutputPrev$xDecompAgg <- listOutputPrev$xDecompAgg[which_bestModRF, ]
       listOutputPrev$mediaVecCollect <- listOutputPrev$mediaVecCollect[which_bestModRF, ]
@@ -280,26 +283,31 @@ robyn_refresh <- function(json_file = NULL,
     } else {
       rf_cal_constr <- 1
     }
-    OutputCollectRF <- robyn_run(
+    OutputModelsRF <- robyn_run(
       InputCollect = InputCollectRF,
-      plot_folder = objectPath,
-      calibration_constraint = rf_cal_constr,
-      add_penalty_factor = listOutputPrev[["add_penalty_factor"]],
       iterations = refresh_iters,
       trials = refresh_trials,
       refresh = TRUE,
-      outputs = TRUE, # So we end up with OutputCollect instead of OutputModels
+      add_penalty_factor = listOutputPrev[["add_penalty_factor"]],
+      ...
+    )
+    OutputCollectRF <- robyn_outputs(
+      InputCollectRF, OutputModelsRF,
+      plot_folder = plot_folder,
+      calibration_constraint = rf_cal_constr,
       export = export,
       plot_pareto = plot_pareto,
+      objective_weights = objective_weights,
       ...
     )
 
-    ## Select winner model for current refresh
+    ## Select winner model for current refresh (the lower error_score the better)
     OutputCollectRF$resultHypParam <- OutputCollectRF$resultHypParam %>%
-      arrange(.data$solID, desc(.data$error_score)) %>%
-      select(.data$solID, everything()) %>%
-      ungroup()
+      ungroup() %>%
+      arrange(.data$error_score) %>%
+      select(.data$solID, everything())
     bestMod <- OutputCollectRF$resultHypParam$solID[1]
+    # OutputCollectRF$clusters$data %>% filter(solID == bestMod)
 
     # Pick best model (and don't crash if not valid)
     selectID <- NULL
@@ -320,7 +328,7 @@ robyn_refresh <- function(json_file = NULL,
         selectID <- bestMod
         message(
           "Selected model ID: ", selectID, " for refresh model #",
-          depth, " based on the smallest combined normalised errors"
+          depth, " based on the smallest combined normalized errors"
         )
       }
       if (!isTRUE(selectID %in% OutputCollectRF$allSolutions)) {
@@ -445,17 +453,22 @@ robyn_refresh <- function(json_file = NULL,
         select_model = selectID,
         export = TRUE, quiet = TRUE, ...
       )
-      plots <- refresh_plots_json(OutputCollectRF, json_file = attr(json_temp, "json_file"), export = export)
+      plots <- refresh_plots_json(
+        OutputCollectRF,
+        json_file = attr(json_temp, "json_file"), export, ...
+      )
     } else {
-      plots <- try(refresh_plots(InputCollectRF, OutputCollectRF, ReportCollect, export = export))
+      plots <- try(refresh_plots(
+        InputCollectRF, OutputCollectRF, ReportCollect, export, ...
+      ))
     }
 
     if (export) {
       message(paste(">>> Exporting refresh CSVs into directory..."))
-      write.csv(resultHypParamReport, paste0(OutputCollectRF$plot_folder, "report_hyperparameters.csv"))
-      write.csv(xDecompAggReport, paste0(OutputCollectRF$plot_folder, "report_aggregated.csv"))
-      write.csv(mediaVecReport, paste0(OutputCollectRF$plot_folder, "report_media_transform_matrix.csv"))
-      write.csv(xDecompVecReport, paste0(OutputCollectRF$plot_folder, "report_alldecomp_matrix.csv"))
+      write.csv(resultHypParamReport, paste0(plot_folder, "report_hyperparameters.csv"))
+      write.csv(xDecompAggReport, paste0(plot_folder, "report_aggregated.csv"))
+      write.csv(mediaVecReport, paste0(plot_folder, "report_media_transform_matrix.csv"))
+      write.csv(xDecompVecReport, paste0(plot_folder, "report_alldecomp_matrix.csv"))
     }
 
     if (refreshLooper == 0) {

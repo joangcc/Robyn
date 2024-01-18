@@ -20,8 +20,10 @@
 #' @param calibration_constraint Numeric. Default to 0.1 and allows 0.01-0.1. When
 #' calibrating, 0.1 means top 10% calibrated models are used for pareto-optimal
 #' selection. Lower \code{calibration_constraint} increases calibration accuracy.
-#' @param plot_folder Character. Path for saving plots. Default
+#' @param plot_folder Character. Path for saving plots and files. Default
 #' to \code{robyn_object} and saves plot in the same directory as \code{robyn_object}.
+#' @param plot_folder_sub Character. Sub path for saving plots. Will overwrite the
+#' default path with timestamp or, for refresh and allocator, simply overwrite files.
 #' @param plot_pareto Boolean. Set to \code{FALSE} to deactivate plotting
 #' and saving model one-pagers. Used when testing models.
 #' @param clusters Boolean. Apply \code{robyn_clusters()} to output models?
@@ -32,6 +34,7 @@
 #' to "all" will output all iterations as csv. Set NULL to skip exports into CSVs.
 #' @param ui Boolean. Save additional outputs for UI usage. List outcome.
 #' @param export Boolean. Export outcomes into local files?
+#' @param all_sol_json Logical. Add all pareto solutions to json export?
 #' @param quiet Boolean. Keep messages off?
 #' @param refresh Boolean. Refresh mode
 #' @param ... Additional parameters passed to \code{robyn_clusters()}
@@ -42,13 +45,16 @@ robyn_outputs <- function(InputCollect, OutputModels,
                           pareto_fronts = "auto",
                           calibration_constraint = 0.1,
                           plot_folder = NULL,
+                          plot_folder_sub = NULL,
                           plot_pareto = TRUE,
                           csv_out = "pareto",
                           clusters = TRUE,
                           select_model = "clusters",
                           ui = FALSE, export = TRUE,
+                          all_sol_json = FALSE,
                           quiet = FALSE,
                           refresh = FALSE, ...) {
+  t0 <- Sys.time()
   if (is.null(plot_folder)) plot_folder <- getwd()
   plot_folder <- check_dir(plot_folder)
 
@@ -69,7 +75,7 @@ robyn_outputs <- function(InputCollect, OutputModels,
   #### Run robyn_pareto on OutputModels
 
   totalModels <- OutputModels$iterations * OutputModels$trials
-  if (!isTRUE(attr(OutputModels, "hyper_fixed"))) {
+  if (!isTRUE(OutputModels$hyper_fixed)) {
     message(sprintf(
       ">>> Running Pareto calculations for %s models on %s front%s...",
       totalModels, pareto_fronts, ifelse(pareto_fronts > 1, "s", "")
@@ -86,15 +92,6 @@ robyn_outputs <- function(InputCollect, OutputModels,
   pareto_fronts <- pareto_results$pareto_fronts
   allSolutions <- pareto_results$pareto_solutions
 
-  # Reduce the size of xDecompVec with only pareto-front models and create solID
-  for (i in seq(OutputModels$trials)) {
-    OutputModels[names(OutputModels) %in% paste0("trial", i)][[1]]$resultCollect$xDecompVec <-
-      OutputModels[names(OutputModels) %in% paste0("trial", i)][[1]]$resultCollect$xDecompVec %>%
-      mutate(solID = paste(.data$trial, .data$iterNG, .data$iterPar, sep = "_")) %>%
-      filter(.data$solID %in% pareto_results$pareto_solutions) %>%
-      select(-c("iterNG", "iterPar"))
-  }
-
   #####################################
   #### Gather the results into output object
 
@@ -107,17 +104,22 @@ robyn_outputs <- function(InputCollect, OutputModels,
     df_caov_pct = pareto_results$df_caov_pct_all
   )
 
-  # Set folder to save outputs: legacy plot_folder_sub
-  if (TRUE) {
-    depth <- ifelse(
-      "refreshDepth" %in% names(InputCollect),
-      InputCollect$refreshDepth,
-      ifelse("refreshCounter" %in% names(InputCollect),
-        InputCollect$refreshCounter, 0
-      )
+  # Set folder to save outputs
+  depth <- ifelse(
+    "refreshDepth" %in% names(InputCollect),
+    InputCollect$refreshDepth,
+    ifelse("refreshCounter" %in% names(InputCollect),
+      InputCollect$refreshCounter, 0
     )
-    folder_var <- ifelse(!as.integer(depth) > 0, "init", paste0("rf", depth))
+  )
+  folder_var <- ifelse(!as.integer(depth) > 0, "init", paste0("rf", depth))
+  if (is.null(plot_folder_sub)) {
     plot_folder_sub <- paste("Robyn", format(Sys.time(), "%Y%m%d%H%M"), folder_var, sep = "_")
+  }
+  plot_folder <- gsub("//+", "/", paste0(plot_folder, "/", plot_folder_sub, "/"))
+  if (!dir.exists(plot_folder) && export) {
+    message("Creating directory for outputs: ", plot_folder)
+    dir.create(plot_folder)
   }
 
   # Final results object
@@ -144,19 +146,16 @@ robyn_outputs <- function(InputCollect, OutputModels,
     seed = OutputModels$seed,
     UI = NULL,
     pareto_fronts = pareto_fronts,
-    hyper_fixed = attr(OutputModels, "hyper_fixed"),
-    plot_folder = gsub("//", "", paste0(plot_folder, "/", plot_folder_sub, "/"))
+    hyper_fixed = OutputModels$hyper_fixed,
+    plot_folder = plot_folder
   )
   class(OutputCollect) <- c("robyn_outputs", class(OutputCollect))
-
-  plotPath <- paste0(plot_folder, "/", plot_folder_sub, "/")
-  OutputCollect$plot_folder <- gsub("//", "/", plotPath)
-  if (export && !dir.exists(OutputCollect$plot_folder)) dir.create(OutputCollect$plot_folder, recursive = TRUE)
 
   # Cluster results and amend cluster output
   if (clusters) {
     if (!quiet) message(">>> Calculating clusters for model selection using Pareto fronts...")
-    try(clusterCollect <- robyn_clusters(OutputCollect,
+    clusterCollect <- try(robyn_clusters(
+      OutputCollect,
       dep_var_type = InputCollect$dep_var_type,
       quiet = quiet, export = export, ...
     ))
@@ -204,10 +203,10 @@ robyn_outputs <- function(InputCollect, OutputModels,
   if (export) {
     tryCatch(
       {
-        if (!quiet) message(paste0(">>> Collecting ", length(allSolutions), " pareto-optimum results into: ", OutputCollect$plot_folder))
+        if (!quiet) message(paste0(">>> Collecting ", length(allSolutions), " pareto-optimum results into: ", plot_folder))
 
         if (!quiet) message(">> Exporting general plots into directory...")
-        all_plots <- robyn_plots(InputCollect, OutputCollect, export = export)
+        all_plots <- robyn_plots(InputCollect, OutputCollect, export = export, ...)
 
         if (csv_out %in% c("all", "pareto")) {
           if (!quiet) message(paste(">> Exporting", csv_out, "results as CSVs into directory..."))
@@ -224,12 +223,26 @@ robyn_outputs <- function(InputCollect, OutputModels,
           pareto_onepagers <- robyn_onepagers(
             InputCollect, OutputCollect,
             select_model = select_model,
-            quiet = quiet,
-            export = export
+            quiet = quiet, export = export, ...
           )
         }
 
-        robyn_write(InputCollect, dir = OutputCollect$plot_folder, quiet = quiet)
+        if (all_sol_json) {
+          pareto_df <- OutputCollect$resultHypParam %>%
+            filter(!is.na(.data$cluster)) %>%
+            select(c("solID", "cluster", "top_sol")) %>%
+            arrange(.data$cluster, -.data$top_sol, .data$solID)
+        } else {
+          pareto_df <- NULL
+        }
+        attr(OutputCollect, "runTime") <- round(
+          difftime(Sys.time(), t0, units = "mins"), 2)
+        robyn_write(
+          InputCollect = InputCollect,
+          OutputCollect = OutputCollect,
+          dir = plot_folder, quiet = quiet,
+          pareto_df = pareto_df, ...
+        )
 
         # For internal use -> UI Code
         if (ui && plot_pareto) OutputCollect$UI$pareto_onepagers <- pareto_onepagers
@@ -242,6 +255,7 @@ robyn_outputs <- function(InputCollect, OutputModels,
   }
 
   if (!is.null(OutputModels$hyper_updated)) OutputCollect$hyper_updated <- OutputModels$hyper_updated
+  attr(OutputCollect, "runTime") <- round(difftime(Sys.time(), t0, units = "mins"), 2)
   class(OutputCollect) <- c("robyn_outputs", class(OutputCollect))
   return(invisible(OutputCollect))
 }
@@ -283,24 +297,25 @@ robyn_csv <- function(InputCollect, OutputCollect, csv_out = NULL, export = TRUE
   if (export) {
     check_class("robyn_outputs", OutputCollect)
     temp_all <- OutputCollect$allPareto
+    plot_folder <- OutputCollect$plot_folder
     if ("pareto" %in% csv_out) {
-      write.csv(OutputCollect$resultHypParam, paste0(OutputCollect$plot_folder, "pareto_hyperparameters.csv"))
-      write.csv(OutputCollect$xDecompAgg, paste0(OutputCollect$plot_folder, "pareto_aggregated.csv"))
+      write.csv(OutputCollect$resultHypParam, paste0(plot_folder, "pareto_hyperparameters.csv"))
+      write.csv(OutputCollect$xDecompAgg, paste0(plot_folder, "pareto_aggregated.csv"))
       if (calibrated) {
-        write.csv(OutputCollect$resultCalibration, paste0(OutputCollect$plot_folder, "pareto_calibration.csv"))
+        write.csv(OutputCollect$resultCalibration, paste0(plot_folder, "pareto_calibration.csv"))
       }
     }
     if ("all" %in% csv_out) {
-      write.csv(temp_all$resultHypParam, paste0(OutputCollect$plot_folder, "all_hyperparameters.csv"))
-      write.csv(temp_all$xDecompAgg, paste0(OutputCollect$plot_folder, "all_aggregated.csv"))
+      write.csv(temp_all$resultHypParam, paste0(plot_folder, "all_hyperparameters.csv"))
+      write.csv(temp_all$xDecompAgg, paste0(plot_folder, "all_aggregated.csv"))
       if (calibrated) {
-        write.csv(temp_all$resultCalibration, paste0(OutputCollect$plot_folder, "all_calibration.csv"))
+        write.csv(temp_all$resultCalibration, paste0(plot_folder, "all_calibration.csv"))
       }
     }
     if (!is.null(csv_out)) {
-      write.csv(InputCollect$dt_input, paste0(OutputCollect$plot_folder, "raw_data.csv"))
-      write.csv(OutputCollect$mediaVecCollect, paste0(OutputCollect$plot_folder, "pareto_media_transform_matrix.csv"))
-      write.csv(OutputCollect$xDecompVecCollect, paste0(OutputCollect$plot_folder, "pareto_alldecomp_matrix.csv"))
+      write.csv(InputCollect$dt_input, paste0(plot_folder, "raw_data.csv"))
+      write.csv(OutputCollect$mediaVecCollect, paste0(plot_folder, "pareto_media_transform_matrix.csv"))
+      write.csv(OutputCollect$xDecompVecCollect, paste0(plot_folder, "pareto_alldecomp_matrix.csv"))
     }
   }
 }

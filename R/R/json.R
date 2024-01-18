@@ -6,15 +6,20 @@
 ####################################################################
 #' Import and Export Robyn JSON files
 #'
-#' \code{robyn_write()} generates a JSON file with all the information
-#' required to replicate a single Robyn model.
+#' \code{robyn_write()} generates JSON files with all the information
+#' required to replicate Robyn models. Depending on user inputs, there are
+#' 3 use cases: only the inputs data, input data + modeling results data,
+#' and input data, modeling results + specifics of a single selected model.
+#' To replicate a model, you must provide InputCollect, OutputCollect, and,
+#' if OutputCollect contains more than one model, the select_model.
 #'
 #' @inheritParams robyn_outputs
 #' @param InputCollect \code{robyn_inputs()} output.
 #' @param select_model Character. Which model ID do you want to export
 #' into the JSON file?
 #' @param dir Character. Existing directory to export JSON file to.
-#' @param ... Additional parameters.
+#' @param pareto_df Dataframe. Save all pareto solutions to json file.
+#' @param ... Additional parameters to export into a custom Extras element.
 #' @examples
 #' \dontrun{
 #' InputCollectJSON <- robyn_inputs(
@@ -32,12 +37,13 @@ robyn_write <- function(InputCollect,
                         select_model = NULL,
                         dir = OutputCollect$plot_folder,
                         export = TRUE,
-                        quiet = FALSE, ...) {
+                        quiet = FALSE,
+                        pareto_df = NULL,
+                        ...) {
   # Checks
   stopifnot(inherits(InputCollect, "robyn_inputs"))
   if (!is.null(OutputCollect)) {
     stopifnot(inherits(OutputCollect, "robyn_outputs"))
-    stopifnot(select_model %in% OutputCollect$allSolutions)
     if (is.null(select_model) && length(OutputCollect$allSolutions == 1)) {
       select_model <- OutputCollect$allSolutions
     }
@@ -48,40 +54,68 @@ robyn_write <- function(InputCollect,
   ret <- list()
   skip <- which(unlist(lapply(InputCollect, function(x) is.list(x) | is.null(x))))
   skip <- skip[!names(skip) %in% c("calibration_input", "hyperparameters", "custom_params")]
-  ret[["InputCollect"]] <- inputs <- InputCollect[-skip]
-  # toJSON(inputs, pretty = TRUE)
+  ret[["InputCollect"]] <- InputCollect[-skip]
+  # toJSON(ret$InputCollect, pretty = TRUE)
 
   # ExportedModel JSON
   if (!is.null(OutputCollect)) {
-    outputs <- list()
-    outputs$select_model <- select_model
-    outputs$ts_validation <- OutputCollect$OutputModels$ts_validation
-    outputs$summary <- filter(OutputCollect$xDecompAgg, .data$solID == select_model) %>%
-      mutate(
-        metric = ifelse(InputCollect$dep_var_type == "revenue", "ROI", "CPA"),
-        performance = ifelse(.data$metric == "ROI", .data$roi_total, .data$cpa_total)
-      ) %>%
-      select(
-        variable = .data$rn, coef = .data$coef,
-        decompPer = .data$xDecompPerc, decompAgg = .data$xDecompAggRF,
-        .data$performance, .data$mean_response, .data$mean_spend,
-        contains("boot_mean"), contains("ci_")
-      )
-    outputs$errors <- filter(OutputCollect$resultHypParam, .data$solID == select_model) %>%
-      select(starts_with("rsq_"), starts_with("nrmse"), .data$decomp.rssd, .data$mape)
-    outputs$hyper_values <- OutputCollect$resultHypParam %>%
-      filter(.data$solID == select_model) %>%
-      select(contains(HYPS_NAMES), dplyr::ends_with("_penalty"), any_of(HYPS_OTHERS)) %>%
-      select(order(colnames(.))) %>%
-      as.list()
-    outputs$hyper_updated <- OutputCollect$hyper_updated
+
+    # Modeling associated data
+    collect <- list()
+    collect$ts_validation <- OutputCollect$OutputModels$ts_validation
+    collect$train_timestamp <- OutputCollect$OutputModels$train_timestamp
+    collect$export_timestamp <- Sys.time()
+    collect$run_time <- sprintf("%s min", attr(OutputCollect$OutputModels, "runTime"))
+    collect$outputs_time <- sprintf("%s min", attr(OutputCollect, "runTime"))
+    collect$total_time <- sprintf(
+      "%s min", attr(OutputCollect, "runTime") +
+        attr(OutputCollect$OutputModels, "runTime"))
+    collect$total_iters <- OutputCollect$OutputModels$iterations *
+      OutputCollect$OutputModels$trials
+    collect$conv_msg <- gsub("\\:.*", "", OutputCollect$OutputModels$convergence$conv_msg)
+    if ("clusters" %in% names(OutputCollect)) {
+      collect$clusters <- OutputCollect$clusters$n_clusters
+    }
+
     skip <- which(unlist(lapply(OutputCollect, function(x) is.list(x) | is.null(x))))
     skip <- c(skip, which(names(OutputCollect) %in% "allSolutions"))
-    outputs <- append(outputs, OutputCollect[-skip])
-    ret[["ExportedModel"]] <- outputs
-    # toJSON(outputs, pretty = TRUE)
+    collect <- append(collect, OutputCollect[-skip])
+    ret[["ModelsCollect"]] <- collect
+
+    # Model associated data
+    if (length(select_model) == 1) {
+      stopifnot(select_model %in% OutputCollect$allSolutions)
+      outputs <- list()
+      outputs$select_model <- select_model
+      outputs$summary <- filter(OutputCollect$xDecompAgg, .data$solID == select_model) %>%
+        mutate(
+          metric = ifelse(InputCollect$dep_var_type == "revenue", "ROI", "CPA"),
+          performance = ifelse(.data$metric == "ROI", .data$roi_total, .data$cpa_total)
+        ) %>%
+        select(
+          variable = .data$rn, coef = .data$coef,
+          decompPer = .data$xDecompPerc, decompAgg = .data$xDecompAggRF,
+          .data$performance, .data$mean_response, .data$mean_spend,
+          contains("boot_mean"), contains("ci_")
+        )
+      outputs$errors <- filter(OutputCollect$resultHypParam, .data$solID == select_model) %>%
+        select(starts_with("rsq_"), starts_with("nrmse"), .data$decomp.rssd, .data$mape)
+      outputs$hyper_values <- OutputCollect$resultHypParam %>%
+        filter(.data$solID == select_model) %>%
+        select(contains(HYPS_NAMES), dplyr::ends_with("_penalty"), any_of(HYPS_OTHERS)) %>%
+        select(order(colnames(.))) %>%
+        as.list()
+      outputs$hyper_updated <- OutputCollect$hyper_updated
+      ret[["ExportedModel"]] <- outputs
+    } else {
+      select_model <- "models"
+    }
   } else {
     select_model <- "inputs"
+  }
+
+  if (length(list(...)) > 0) {
+    ret[["Extras"]] <- list(...)
   }
 
   if (!dir.exists(dir) & export) dir.create(dir, recursive = TRUE)
@@ -91,7 +125,21 @@ robyn_write <- function(InputCollect,
   attr(ret, "json_file") <- filename
   if (export) {
     if (!quiet) message(sprintf(">> Exported model %s as %s", select_model, filename))
-    write_json(ret, filename, pretty = TRUE)
+    if (!is.null(pareto_df)) {
+      if (!all(c("solID", "cluster") %in% names(pareto_df))) {
+        warning(paste(
+          "Input 'pareto_df' is not a valid data.frame;",
+          "must contain 'solID' and 'cluster' columns."))
+      } else {
+        all_c <- unique(pareto_df$cluster)
+        pareto_df <- lapply(all_c, function(x) {
+          (pareto_df %>% filter(.data$cluster == x))$solID
+        })
+        names(pareto_df) <- paste0("cluster", all_c)
+        ret[["OutputCollect"]][["all_sols"]] <- pareto_df
+      }
+    }
+    write_json(ret, filename, pretty = TRUE, digits = 10)
   }
   return(invisible(ret))
 }
@@ -177,6 +225,7 @@ robyn_read <- function(json_file = NULL, step = 1, quiet = FALSE, ...) {
       }
       json <- read_json(json_file, simplifyVector = TRUE)
       json$InputCollect <- json$InputCollect[lapply(json$InputCollect, length) > 0]
+      json$ExportedModel <- append(json$ModelsCollect, json$ExportedModel)
       # Add train_size if not available (<3.9.0)
       if (!"train_size" %in% names(json$ExportedModel$hyper_values)) {
         json$ExportedModel$hyper_values$train_size <- 1
@@ -187,7 +236,8 @@ robyn_read <- function(json_file = NULL, step = 1, quiet = FALSE, ...) {
       if (!"ExportedModel" %in% names(json) && step == 2) {
         stop("JSON file must contain ExportedModel element")
       }
-      if (!quiet) message("Imported JSON file succesfully: ", json_file)
+      json$ModelsCollect <- NULL
+      if (!quiet) message("Imported JSON file successfully: ", json_file)
       class(json) <- c("robyn_read", class(json))
       return(json)
     }
@@ -251,18 +301,30 @@ Adstock: {a$adstock}
 robyn_recreate <- function(json_file, quiet = FALSE, ...) {
   json <- robyn_read(json_file, quiet = TRUE)
   message(">>> Recreating model ", json$ExportedModel$select_model)
-  InputCollect <- robyn_inputs(
-    json_file = json_file,
-    quiet = quiet,
-    ...
-  )
-  OutputCollect <- robyn_run(
-    InputCollect = InputCollect,
-    json_file = json_file,
-    export = FALSE,
-    quiet = quiet,
-    ...
-  )
+  args <- list(...)
+  if (!"InputCollect" %in% names(args)) {
+    InputCollect <- robyn_inputs(
+      json_file = json_file,
+      quiet = quiet,
+      ...
+    )
+    OutputCollect <- robyn_run(
+      InputCollect = InputCollect,
+      json_file = json_file,
+      export = FALSE,
+      quiet = quiet,
+      ...
+    )
+  } else {
+    # Use case: skip feature engineering when InputCollect is provided
+    InputCollect <- args[["InputCollect"]]
+    OutputCollect <- robyn_run(
+      json_file = json_file,
+      export = FALSE,
+      quiet = quiet,
+      ...
+    )
+  }
   return(invisible(list(
     InputCollect = InputCollect,
     OutputCollect = OutputCollect

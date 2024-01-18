@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 #############################################################################################
-####################         Meta MMM Open Source: Robyn 3.10.0       #######################
+####################         Meta MMM Open Source: Robyn 3.10.5       #######################
 ####################             Quick demo guide                     #######################
 #############################################################################################
 
@@ -52,20 +52,16 @@ data("dt_prophet_holidays")
 head(dt_prophet_holidays)
 
 # Directory where you want to export results to (will create new folders)
-robyn_object <- "~/Desktop"
-
-### DEPRECATED: It must have extension .RDS. The object name can be different than Robyn:
-# robyn_object <- "~/Desktop/MyRobyn.RDS"
+robyn_directory <- "~/Desktop"
 
 ################################################################
 #### Step 2a: For first time user: Model specification in 4 steps
 
 #### 2a-1: First, specify input variables
 
-## NOTE (>3.6.1): All sign control are now automatically provided: "positive" for media & organic
+## All sign control are now automatically provided: "positive" for media & organic
 ## variables and "default" for all others. User can still customise signs if necessary.
 ## Documentation is available, access it anytime by running: ?robyn_inputs
-
 InputCollect <- robyn_inputs(
   dt_input = dt_simulated_weekly,
   dt_holidays = dt_prophet_holidays,
@@ -73,7 +69,7 @@ InputCollect <- robyn_inputs(
   dep_var = "revenue", # there should be only one dependent variable
   dep_var_type = "revenue", # "revenue" (ROI) or "conversion" (CPA)
   prophet_vars = c("trend", "season", "holiday"), # "trend","season", "weekday" & "holiday"
-  prophet_country = "DE", # input one country. dt_prophet_holidays includes 59 countries by default
+  prophet_country = "DE", # input country code. Check: dt_prophet_holidays
   context_vars = c("competitor_sales_B", "events"), # e.g. competitors, discount, unemployment etc
   paid_media_spends = c("tv_S", "ooh_S", "print_S", "facebook_S", "search_S"), # mandatory input
   paid_media_vars = c("tv_S", "ooh_S", "print_S", "facebook_I", "search_clicks_P"), # mandatory.
@@ -89,7 +85,7 @@ print(InputCollect)
 
 #### 2a-2: Second, define and add hyperparameters
 
-## NOTE (>3.6.1): Default media variable for modelling has changed from paid_media_vars to paid_media_spends.
+## Default media variable for modelling has changed from paid_media_vars to paid_media_spends.
 ## Also, calibration_input are required to be spend names.
 ## hyperparameter names are based on paid_media_spends names too. See right hyperparameter names:
 hyper_names(adstock = InputCollect$adstock, all_media = InputCollect$all_media)
@@ -97,13 +93,13 @@ hyper_names(adstock = InputCollect$adstock, all_media = InputCollect$all_media)
 ## Guide to setup & understand hyperparameters
 
 ## Robyn's hyperparameters have four components:
-## Adstock parameters (theta or shape/scale).
-## Saturation parameters (alpha/gamma).
-## Regularisation parameter (lambda). No need to specify manually.
-## Time series validation parameter (train_size).
+## - Adstock parameters (theta or shape/scale)
+## - Saturation parameters (alpha/gamma)
+## - Regularisation parameter (lambda). No need to specify manually
+## - Time series validation parameter (train_size)
 
 ## 1. IMPORTANT: set plot = TRUE to create example plots for adstock & saturation
-## hyperparameters and their influence in curve transformation
+## hyperparameters and their influence in curve transformation.
 plot_adstock(plot = FALSE)
 plot_saturation(plot = FALSE)
 
@@ -112,7 +108,7 @@ plot_saturation(plot = FALSE)
 # transformed by adstock & saturation.
 # Run hyper_names(adstock = InputCollect$adstock, all_media = InputCollect$all_media)
 # to get correct media hyperparameter names. All names in hyperparameters must equal
-# names from hyper_names(), case sensitive. Run ?hyper_names to check fucntion arguments
+# names from hyper_names(), case sensitive. Run ?hyper_names to check function arguments.
 
 ## 3. Hyperparameter interpretation & recommendation:
 
@@ -327,7 +323,7 @@ OutputCollect <- robyn_outputs(
   csv_out = "pareto", # "pareto", "all", or NULL (for none)
   clusters = TRUE, # Set to TRUE to cluster similar models by ROAS. See ?robyn_clusters
   export = create_files, # this will create files locally
-  plot_folder = robyn_object, # path for plots exports and files creation
+  plot_folder = robyn_directory, # path for plots exports and files creation
   plot_pareto = create_files # Set to FALSE to deactivate plotting and saving model one-pagers
 )
 print(OutputCollect)
@@ -345,21 +341,19 @@ print(OutputCollect)
 
 ## Compare all model one-pagers and select one that mostly reflects your business reality
 print(OutputCollect)
-select_model <- "1_154_6" # Pick one of the models from OutputCollect to proceed
+select_model <- "1_122_7" # Pick one of the models from OutputCollect to proceed
 
 #### Version >=3.7.1: JSON export and import (faster and lighter than RDS files)
 ExportedModel <- robyn_write(InputCollect, OutputCollect, select_model, export = create_files)
 print(ExportedModel)
 
-###### DEPRECATED (<3.7.1) (might work)
-# ExportedModelOld <- robyn_save(
-#   robyn_object = robyn_object, # model object location and name
-#   select_model = select_model, # selected model ID
-#   InputCollect = InputCollect,
-#   OutputCollect = OutputCollect
-# )
-# print(ExportedModelOld)
-# # plot(ExportedModelOld)
+# To plot any model's one-pager:
+myOnePager <- robyn_onepagers(InputCollect, OutputCollect, select_model, export = FALSE)
+
+# To check each of the one-pager's plots
+# myOnePager[[select_model]]$patches$plots[[1]]
+# myOnePager[[select_model]]$patches$plots[[2]]
+# myOnePager[[select_model]]$patches$plots[[3]] # ...
 
 ################################################################
 #### Step 5: Get budget allocation based on the selected model above
@@ -375,57 +369,70 @@ print(ExportedModel)
 # NOTE: The order of constraints should follow:
 InputCollect$paid_media_spends
 
-# Scenario "max_historical_response": "What's the potential revenue/conversions lift with the
-# same spend level in date_range and what is the spend and expected response mix?"
-# For this scenario, we have several use cases:
-
-# Case 1: date_range & total_budget both NULL (default for last month's spend)
+# Scenario "max_response": "What's the max. return given certain spend?"
+# Example 1: max_response default setting: maximize response for latest month
 AllocatorCollect1 <- robyn_allocator(
   InputCollect = InputCollect,
   OutputCollect = OutputCollect,
   select_model = select_model,
-  date_range = NULL, # When NULL, will set last month (30 days, 4 weeks, or 1 month)
+  # date_range = "all", # Default to "all"
+  # total_budget = NULL, # When NULL, default is total spend in date_range
   channel_constr_low = 0.7,
   channel_constr_up = c(1.2, 1.5, 1.5, 1.5, 1.5),
-  channel_constr_multiplier = 3,
-  scenario = "max_historical_response",
+  # channel_constr_multiplier = 3,
+  scenario = "max_response",
   export = create_files
 )
-# Print the allocator's output summary
+# Print & plot allocator's output
 print(AllocatorCollect1)
-# Plot the allocator one-pager
 plot(AllocatorCollect1)
 
-# Case 2: date_range defined, total_budget NULL (mean spend of date_range as initial spend)
+# Example 2: maximize response for latest 10 periods with given spend
 AllocatorCollect2 <- robyn_allocator(
   InputCollect = InputCollect,
   OutputCollect = OutputCollect,
   select_model = select_model,
-  date_range = "last_26", # Last 26 periods, same as c("2018-07-09", "2018-12-31")
+  date_range = "last_10", # Last 10 periods, same as c("2018-10-22", "2018-12-31")
+  total_budget = 5000000, # Total budget for date_range period simulation
   channel_constr_low = c(0.8, 0.7, 0.7, 0.7, 0.7),
   channel_constr_up = c(1.2, 1.5, 1.5, 1.5, 1.5),
-  channel_constr_multiplier = 3,
-  scenario = "max_historical_response",
+  channel_constr_multiplier = 5, # Customise bound extension for wider insights
+  scenario = "max_response",
   export = create_files
 )
 print(AllocatorCollect2)
 plot(AllocatorCollect2)
 
-# Case 3: date_range (defined or not defined) and total_budget defined
+# Scenario "target_efficiency": "How much to spend to hit ROAS or CPA of x?"
+# Example 3: Use default ROAS target for revenue or CPA target for conversion
+# Check InputCollect$dep_var_type for revenue or conversion type
+# Two default ROAS targets: 0.8x of initial ROAS as well as ROAS = 1
+# Two default CPA targets: 1.2x and 2.4x of the initial CPA
 AllocatorCollect3 <- robyn_allocator(
   InputCollect = InputCollect,
   OutputCollect = OutputCollect,
   select_model = select_model,
-  # date_range = "last_4",
-  total_budget = 5000000,
-  channel_constr_low = 0.7,
-  channel_constr_up = c(1.2, 1.5, 1.5, 1.5, 1.5),
-  channel_constr_multiplier = 5,
-  scenario = "max_historical_response",
+  # date_range = NULL, # Default last month as initial period
+  scenario = "target_efficiency",
+  # target_value = 2, # Customize target ROAS or CPA value
   export = create_files
 )
 print(AllocatorCollect3)
 plot(AllocatorCollect3)
+
+# Example 4: Customize target_value for ROAS or CPA (using json_file)
+json_file = "~/Desktop/Robyn_202302221206_init/RobynModel-1_117_11.json"
+AllocatorCollect4 <- robyn_allocator(
+  json_file = json_file, # Using json file from robyn_write() for allocation
+  dt_input = dt_simulated_weekly,
+  dt_holidays = dt_prophet_holidays,
+  date_range = NULL, # Default last month as initial period
+  scenario = "target_efficiency",
+  target_value = 2, # Customize target ROAS or CPA value
+  plot_folder = "~/Desktop/my_dir",
+  plot_folder_sub = "my_subdir",
+  export = create_files
+)
 
 ## A csv is exported into the folder for further usage. Check schema here:
 ## https://github.com/facebookexperimental/Robyn/blob/main/demo/schema.R
@@ -447,7 +454,7 @@ robyn_response(
   select_model = select_model,
   metric_name = select_media,
   metric_value = metric_value,
-  metric_ds = "last_5"
+  date_range = "last_5"
 )
 
 ################################################################
@@ -487,108 +494,90 @@ InputCollectX <- RobynRefresh$listRefresh1$InputCollect
 OutputCollectX <- RobynRefresh$listRefresh1$OutputCollect
 select_modelX <- RobynRefresh$listRefresh1$OutputCollect$selectID
 
-###### DEPRECATED (<3.7.1) (might work)
-# # Run ?robyn_refresh to check parameter definition
-# Robyn <- robyn_refresh(
-#   robyn_object = robyn_object,
-#   dt_input = dt_simulated_weekly,
-#   dt_holidays = dt_prophet_holidays,
-#   refresh_steps = 4,
-#   refresh_mode = "manual",
-#   refresh_iters = 1000, # 1k is estimation. Use refresh_mode = "manual" to try out.
-#   refresh_trials = 1
-# )
-
 ## Besides plots: there are 4 CSV outputs saved in the folder for further usage
 # report_hyperparameters.csv, hyperparameters of all selected model for reporting
 # report_aggregated.csv, aggregated decomposition per independent variable
 # report_media_transform_matrix.csv, all media transformation vectors
 # report_alldecomp_matrix.csv,all decomposition vectors of independent variables
 
-################################################################
-#### Step 7: Get budget allocation recommendation based on selected refresh runs
-
-# Run ?robyn_allocator to check parameter definition
-AllocatorCollect <- robyn_allocator(
-  InputCollect = InputCollect,
-  OutputCollect = OutputCollect,
-  select_model = select_model,
-  scenario = "max_response_expected_spend",
-  channel_constr_low = c(0.7, 0.7, 0.7, 0.7, 0.7),
-  channel_constr_up = c(1.2, 1.5, 1.5, 1.5, 1.5),
-  expected_spend = 2000000, # Total spend to be simulated
-  expected_spend_days = 14, # Duration of expected_spend in days
-  export = FALSE
-)
-print(AllocatorCollect)
-# plot(AllocatorCollect)
 
 ################################################################
-#### Step 8: get marginal returns
+#### Step 7: get marginal returns
 
 ## Example of how to get marginal ROI of next 1000$ from the 80k spend level for search channel
 
 # Run ?robyn_response to check parameter definition
 
-## -------------------------------- NOTE v3.6.0 CHANGE !!! ---------------------------------- ##
 ## The robyn_response() function can now output response for both spends and exposures (imps,
 ## GRP, newsletter sendings etc.) as well as plotting individual saturation curves. New
 ## argument names "metric_name" and "metric_value" instead of "paid_media_var" and "spend"
 ## are now used to accommodate this change. Also the returned output is a list now and
 ## contains also the plot.
-## ------------------------------------------------------------------------------------------ ##
 
-# Get response for 80k from result saved in robyn_object
-Spend1 <- 60000
+## Recreate original saturation curve
+Response <- robyn_response(
+  InputCollect = InputCollect,
+  OutputCollect = OutputCollect,
+  select_model = select_model,
+  metric_name = "facebook_S"
+)
+Response$plot
+
+## Or you can call a JSON file directly (a bit slower)
+# Response <- robyn_response(
+#   json_file = "your_json_path.json",
+#   dt_input = dt_simulated_weekly,
+#   dt_holidays = dt_prophet_holidays,
+#   metric_name = "facebook_S"
+# )
+
+## Get the "next 100 dollar" marginal response on Spend1
+Spend1 <- 20000
 Response1 <- robyn_response(
   InputCollect = InputCollect,
   OutputCollect = OutputCollect,
   select_model = select_model,
   metric_name = "facebook_S",
-  metric_value = c(Spend1),
-  # date_range = "last_2"
+  metric_value = Spend1, # total budget for date_range
+  date_range = "last_1" # last two periods
 )
-Response1$response / Spend1 # ROI for search 80k
 Response1$plot
 
-#### Or you can call a JSON file directly (a bit slower)
-# Response1 <- robyn_response(
-#   json_file = json_file,
-#   dt_input = dt_simulated_weekly,
-#   dt_holidays = dt_prophet_holidays,
-#   metric_name = "search_S",
-#   metric_value = Spend1,
-#   metric_ds = NULL
-# )
-
-# Get response for +10%
-Spend2 <- Spend1 * 1.1
+Spend2 <- Spend1 + 100
 Response2 <- robyn_response(
   InputCollect = InputCollect,
   OutputCollect = OutputCollect,
   select_model = select_model,
-  metric_name = "search_S",
+  metric_name = "facebook_S",
   metric_value = Spend2,
-  metric_ds = NULL
+  date_range = "last_1"
 )
-Response2$response / Spend2 # ROI for search 81k
-Response2$plot
+# ROAS for the 100$ from Spend1 level
+(Response2$response_total - Response1$response_total) / (Spend2 - Spend1)
 
-# Marginal ROI of next 1000$ from 80k spend level for search
-(Response2$response - Response1$response) / (Spend2 - Spend1)
-
-## Example of getting paid media exposure response curves
-imps <- 50000000
-response_imps <- robyn_response(
+## Get response from for a given budget and date_range
+Spend3 <- 100000
+Response3 <- robyn_response(
   InputCollect = InputCollect,
   OutputCollect = OutputCollect,
   select_model = select_model,
-  metric_name = "facebook_I",
-  metric_value = imps,
-  metric_ds = NULL
+  metric_name = "facebook_S",
+  metric_value = Spend3, # total budget for date_range
+  date_range = "last_5" # last 5 periods
 )
-response_imps$response / imps * 1000
-response_imps$plot
+Response3$plot
+
+## Example of getting paid media exposure response curves
+# imps <- 10000000
+# response_imps <- robyn_response(
+#   InputCollect = InputCollect,
+#   OutputCollect = OutputCollect,
+#   select_model = select_model,
+#   metric_name = "facebook_I",
+#   metric_value = imps
+# )
+# response_imps$response_total / imps * 1000
+# response_imps$plot
 
 ## Example of getting organic media exposure response curves
 sendings <- 30000
@@ -597,14 +586,14 @@ response_sending <- robyn_response(
   OutputCollect = OutputCollect,
   select_model = select_model,
   metric_name = "newsletter",
-  metric_value = sendings,
-  metric_ds = NULL
+  metric_value = sendings
 )
-response_sending$response / sendings * 1000
+# response per 1000 sendings
+response_sending$response_total / sendings * 1000
 response_sending$plot
 
 ################################################################
-#### Optional: recreate old models and replicate results [v3.7.1]
+#### Optional: recreate old models and replicate results
 
 # From an exported JSON file (which is created automatically when exporting a model)
 # we can re-create a previously trained model and outputs. Note: we need to provide
@@ -617,7 +606,6 @@ robyn_write(InputCollect, dir = "~/Desktop")
 
 # Manually create JSON file with inputs and specific model results
 robyn_write(InputCollect, OutputCollect, select_model)
-
 
 ############ READ ############
 # Recreate `InputCollect` and `OutputCollect` objects
@@ -642,20 +630,20 @@ OutputCollectX <- robyn_run(
 
 # Or re-create both by simply using robyn_recreate()
 RobynRecreated <- robyn_recreate(
-  json_file = json_file,
+  json_file = "~/Desktop/Robyn_202303131448_init/RobynModel-1_103_7.json",
   dt_input = dt_simulated_weekly,
   dt_holidays = dt_prophet_holidays,
   quiet = FALSE)
 InputCollectX <- RobynRecreated$InputCollect
 OutputCollectX <- RobynRecreated$OutputCollect
 
-# Re-export model and check summary (will get exported in your current working directory)
-myModel <- robyn_write(InputCollectX, OutputCollectX, dir = "~/Desktop")
+# Re-export or rebuild a model and check summary
+myModel <- robyn_write(InputCollectX, OutputCollectX, export = FALSE, dir = "~/Desktop")
 print(myModel)
 
 # Re-create one-pager
-myModelPlot <- robyn_onepagers(InputCollectX, OutputCollectX, select_model = NULL, export = create_files)
-# myModelPlot$`1_204_5`$patches$plots[[6]]
+myModelPlot <- robyn_onepagers(InputCollectX, OutputCollectX, export = FALSE)
+# myModelPlot[[1]]$patches$plots[[7]]
 
 # Refresh any imported model
 RobynRefresh <- robyn_refresh(

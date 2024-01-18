@@ -10,14 +10,18 @@ robyn_mmm(
   iterations,
   cores,
   nevergrad_algo,
+  intercept = TRUE,
   intercept_sign,
   ts_validation = TRUE,
   add_penalty_factor = FALSE,
+  objective_weights = NULL,
   dt_hyper_fixed = NULL,
+  rssd_zero_penalty = TRUE,
   refresh = FALSE,
   trial = 1L,
   seed = 123L,
-  quiet = FALSE
+  quiet = FALSE,
+  ...
 )
 }
 \arguments{
@@ -36,6 +40,9 @@ except one). Set to 1 if you want to turn parallel computing off.}
 \code{c("DE","TwoPointsDE", "OnePlusOne", "DoubleFastGADiscreteOnePlusOne",
 "DiscreteOnePlusOne", "PortfolioDiscreteOnePlusOne", "NaiveTBPSA",
 "cGA", "RandomSearch")}.}
+
+\item{intercept}{Boolean. Should intercept(s) be fitted (default=TRUE) or
+set to zero (FALSE).}
 
 \item{intercept_sign}{Character. Choose one of "non_negative" (default) or
 "unconstrained". By default, if intercept is negative, Robyn will drop intercept
@@ -56,9 +63,20 @@ glmnet's penalty.factor to be optimized by nevergrad. Use with caution, because
 this feature might add too much hyperparameter space and probably requires
 more iterations to converge.}
 
+\item{objective_weights}{Numeric. Default to NULL that gives equal weights
+to all objective functions. Set c(2, 1) to give double weight to the 1st.
+This is an experimental feature. There's no research on optimal weight
+setting. Subjective weights might strongly bias modelling result.}
+
 \item{dt_hyper_fixed}{data.frame or named list. Only provide when loading
 old model results. It consumes hyperparameters from saved csv
 \code{pareto_hyperparameters.csv} or JSON file to replicate a model.}
+
+\item{rssd_zero_penalty}{Boolean. When TRUE, the objective function
+DECOMP.RSSD will penalize models with more 0 media effects additionally.
+In other words, given the same DECOMP.RSSD score, a model with 50\% 0-coef
+variables will get penalized by DECOMP.RSSD * 1.5 (larger error), while
+another model with no 0-coef variables gets un-penalized with DECOMP.RSSD * 1.}
 
 \item{refresh}{Boolean. Set to \code{TRUE} when used in \code{robyn_refresh()}.}
 
@@ -67,6 +85,8 @@ old model results. It consumes hyperparameters from saved csv
 \item{seed}{Integer. For reproducible results when running nevergrad.}
 
 \item{quiet}{Boolean. Keep messages off?}
+
+\item{...}{Additional parameters passed to \code{robyn_outputs()}.}
 }
 \value{
 List. MMM results with hyperparameters values.

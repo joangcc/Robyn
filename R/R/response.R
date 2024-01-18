@@ -161,7 +161,7 @@ robyn_response <- function(InputCollect = NULL,
     dayInterval <- InputCollect$dayInterval
   }
 
-  if (!(select_model %in% allSolutions)) {
+  if (!isTRUE(select_model %in% allSolutions) || is.null(select_model)) {
     stop(paste0(
       "Input 'select_model' must be one of these values: ",
       paste(allSolutions, collapse = ", ")
@@ -177,13 +177,14 @@ robyn_response <- function(InputCollect = NULL,
   all_values <- pull(dt_input, metric_name)
 
   if (usecase == "all_historical_vec") {
-    ds_list <- check_metric_dates(date_range = "all", all_dates, dayInterval, quiet, ...)
-    val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
+    ds_list <- check_metric_dates(date_range = "all", all_dates[1:endRW], dayInterval, quiet, ...)
+    metric_value <- NULL
+    # val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
   } else if (usecase == "unit_metric_default_last_n") {
-    ds_list <- check_metric_dates(date_range = paste0("last_", length(metric_value)), all_dates, dayInterval, quiet, ...)
-    val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
+    ds_list <- check_metric_dates(date_range = paste0("last_", length(metric_value)), all_dates[1:endRW], dayInterval, quiet, ...)
+    # val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
   } else {
-    ds_list <- check_metric_dates(date_range, all_dates, dayInterval, quiet, ...)
+    ds_list <- check_metric_dates(date_range, all_dates[1:endRW], dayInterval, quiet, ...)
   }
   val_list <- check_metric_value(metric_value, metric_name, all_values, ds_list$metric_loc)
   date_range_updated <- ds_list$date_range_updated
@@ -243,15 +244,22 @@ robyn_response <- function(InputCollect = NULL,
   ## Adstocking simulation
   x_list_sim <- transform_adstock(all_values_updated, adstock, theta = theta, shape = shape, scale = scale)
   media_vec_sim <- x_list_sim$x_decayed
+  media_vec_sim_imme <- if (adstock == "weibull_pdf") x_list_sim$x_imme else x_list_sim$x
   input_total <- media_vec_sim[ds_list$metric_loc]
+  input_immediate <- media_vec_sim_imme[ds_list$metric_loc]
   input_carryover <- input_total - input_immediate
 
   ## Saturation
   m_adstockedRW <- m_adstocked[startRW:endRW]
   alpha <- head(dt_hyppar[dt_hyppar$solID == select_model, ][[paste0(hpm_name, "_alphas")]], 1)
   gamma <- head(dt_hyppar[dt_hyppar$solID == select_model, ][[paste0(hpm_name, "_gammas")]], 1)
-  metric_saturated_total <- saturation_hill(x = m_adstockedRW, alpha = alpha, gamma = gamma, x_marginal = input_total)
-  metric_saturated_carryover <- saturation_hill(x = m_adstockedRW, alpha = alpha, gamma = gamma, x_marginal = input_carryover)
+  if (usecase == "all_historical_vec") {
+    metric_saturated_total <- saturation_hill(x = m_adstockedRW, alpha = alpha, gamma = gamma)
+    metric_saturated_carryover <- saturation_hill(x = m_adstockedRW, alpha = alpha, gamma = gamma)
+  } else {
+    metric_saturated_total <- saturation_hill(x = m_adstockedRW, alpha = alpha, gamma = gamma, x_marginal = input_total)
+    metric_saturated_carryover <- saturation_hill(x = m_adstockedRW, alpha = alpha, gamma = gamma, x_marginal = input_carryover)
+  }
   metric_saturated_immediate <- metric_saturated_total - metric_saturated_carryover
 
   ## Decomp
@@ -263,11 +271,15 @@ robyn_response <- function(InputCollect = NULL,
   response_immediate <- response_total - response_carryover
 
   dt_line <- data.frame(metric = m_adstockedRW, response = m_resposne, channel = metric_name)
-  dt_point <- data.frame(input = input_total, output = response_total, ds = date_range_updated)
-
-  # Reference non-adstocked data when using updated metric values
-  dt_point_caov <- data.frame(input = input_carryover, output = response_carryover)
-  dt_point_imme <- data.frame(input = input_immediate, output = response_immediate)
+  if (usecase == "all_historical_vec") {
+    dt_point <- data.frame(input = input_total[startRW:endRW], output = response_total, ds = date_range_updated[startRW:endRW])
+    dt_point_caov <- data.frame(input = input_carryover[startRW:endRW], output = response_carryover)
+    dt_point_imme <- data.frame(input = input_immediate[startRW:endRW], output = response_immediate)
+  } else {
+    dt_point <- data.frame(input = input_total, output = response_total, ds = date_range_updated)
+    dt_point_caov <- data.frame(input = input_carryover, output = response_carryover)
+    dt_point_imme <- data.frame(input = input_immediate, output = response_immediate)
+  }
 
   ## Plot optimal response
   p_res <- ggplot(dt_line, aes(x = .data$metric, y = .data$response)) +
@@ -300,10 +312,9 @@ robyn_response <- function(InputCollect = NULL,
         ifelse(length(date_range_updated) > 1, paste0(" [", length(date_range_updated), " periods]"), "")
       )
     ) +
-    theme_lares() +
+    theme_lares(background = "white") +
     scale_x_abbr() +
     scale_y_abbr()
-  p_res
   if (length(unique(metric_value)) == 1) {
     p_res <- p_res +
       geom_point(data = dt_point_caov, aes(x = .data$input, y = .data$output), size = 3, shape = 8)
@@ -326,7 +337,7 @@ robyn_response <- function(InputCollect = NULL,
 }
 
 which_usecase <- function(metric_value, date_range) {
-  dplyr::case_when(
+  usecase <- case_when(
     # Case 1: raw historical spend and all dates -> model decomp as out of the model (no mean spends)
     is.null(metric_value) & is.null(date_range) ~ "all_historical_vec",
     # Case 2: same as case 1 for date_range
@@ -339,6 +350,12 @@ which_usecase <- function(metric_value, date_range) {
     length(metric_value) > 1 & is.null(date_range) ~ "unit_metric_default_last_n",
     TRUE ~ "unit_metric_selected_dates"
   )
+  if (!is.null(date_range)) {
+    if (length(date_range) == 1 & as.character(date_range[1]) == "all") {
+      usecase <- "all_historical_vec"
+    }
+  }
+  return(usecase)
 }
 
 # ####### SCENARIOS CHECK FOR date_range

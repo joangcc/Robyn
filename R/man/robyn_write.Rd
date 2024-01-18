@@ -15,6 +15,7 @@ robyn_write(
   dir = OutputCollect$plot_folder,
   export = TRUE,
   quiet = FALSE,
+  pareto_df = NULL,
   ...
 )
 
@@ -40,7 +41,9 @@ into the JSON file?}
 
 \item{quiet}{Boolean. Keep messages off?}
 
-\item{...}{Additional parameters.}
+\item{pareto_df}{Dataframe. Save all pareto solutions to json file.}
+
+\item{...}{Additional parameters to export into a custom Extras element.}
 
 \item{x}{\code{robyn_read()} or \code{robyn_write()} output.}
 
@@ -53,8 +56,12 @@ into the JSON file?}
 Class: \code{robyn_write}.
 }
 \description{
-\code{robyn_write()} generates a JSON file with all the information
-required to replicate a single Robyn model.
+\code{robyn_write()} generates JSON files with all the information
+required to replicate Robyn models. Depending on user inputs, there are
+3 use cases: only the inputs data, input data + modeling results data,
+and input data, modeling results + specifics of a single selected model.
+To replicate a model, you must provide InputCollect, OutputCollect, and,
+if OutputCollect contains more than one model, the select_model.
 }
 \examples{
 \dontrun{

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -9,21 +9,19 @@
 
 module.exports = {
   someSidebar:[
+    'welcome',
     {
       type: 'category',
-      label: 'How-to guide',
+      label: 'Getting Started',
       collapsed: false,
       items: [
-      'quick-start',
-      'additional-materials',
-      'e-learning-course',
+      'installation',
+      'analysts-guide-to-MMM',
+      'features',
+      'robyn-api'
       ],
     },
-    'analysts-guide-to-MMM',
-    'features',
-    'releases',
-    'success-stories',
-    'contributing',
-    'about',
+    'case-studies',
+    'resources'
     ]
 };

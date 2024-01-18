@@ -7,6 +7,7 @@
 \alias{robyn_plots}
 \alias{robyn_onepagers}
 \alias{ts_validation}
+\alias{decomp_plot}
 \title{Evaluate Models and Output Results into Local Files}
 \usage{
 robyn_outputs(
@@ -15,12 +16,14 @@ robyn_outputs(
   pareto_fronts = "auto",
   calibration_constraint = 0.1,
   plot_folder = NULL,
+  plot_folder_sub = NULL,
   plot_pareto = TRUE,
   csv_out = "pareto",
   clusters = TRUE,
   select_model = "clusters",
   ui = FALSE,
   export = TRUE,
+  all_sol_json = FALSE,
   quiet = FALSE,
   refresh = FALSE,
   ...
@@ -36,17 +39,28 @@ robyn_csv(
   calibrated = FALSE
 )
 
-robyn_plots(InputCollect, OutputCollect, export = TRUE, ...)
+robyn_plots(
+  InputCollect,
+  OutputCollect,
+  export = TRUE,
+  plot_folder = OutputCollect$plot_folder,
+  ...
+)
 
 robyn_onepagers(
   InputCollect,
   OutputCollect,
   select_model = NULL,
   quiet = FALSE,
-  export = TRUE
+  export = TRUE,
+  plot_folder = OutputCollect$plot_folder,
+  baseline_level = 0,
+  ...
 )
 
 ts_validation(OutputModels, quiet = FALSE, ...)
+
+decomp_plot(InputCollect, OutputCollect, solID = NULL, exclude = NULL)
 }
 \arguments{
 \item{InputCollect, OutputModels}{\code{robyn_inputs()} and \code{robyn_run()}
@@ -62,8 +76,11 @@ candidates. To customize this threshold, set value with \code{min_candidates}.}
 calibrating, 0.1 means top 10% calibrated models are used for pareto-optimal
 selection. Lower \code{calibration_constraint} increases calibration accuracy.}
 
-\item{plot_folder}{Character. Path for saving plots. Default
+\item{plot_folder}{Character. Path for saving plots and files. Default
 to \code{robyn_object} and saves plot in the same directory as \code{robyn_object}.}
+
+\item{plot_folder_sub}{Character. Sub path for saving plots. Will overwrite the
+default path with timestamp or, for refresh and allocator, simply overwrite files.}
 
 \item{plot_pareto}{Boolean. Set to \code{FALSE} to deactivate plotting
 and saving model one-pagers. Used when testing models.}
@@ -81,6 +98,8 @@ wish to plot the one-pagers and export? Default will take top
 
 \item{export}{Boolean. Export outcomes into local files?}
 
+\item{all_sol_json}{Logical. Add all pareto solutions to json export?}
+
 \item{quiet}{Boolean. Keep messages off?}
 
 \item{refresh}{Boolean. Refresh mode}
@@ -92,6 +111,16 @@ wish to plot the one-pagers and export? Default will take top
 \item{OutputCollect}{\code{robyn_run(..., export = FALSE)} output.}
 
 \item{calibrated}{Logical}
+
+\item{baseline_level}{Integer, from 0 to 5. Aggregate baseline variables,
+depending on the level of aggregation you need. Default is 0 for no
+aggregation. 1 for Intercept only. 2 adding trend. 3 adding all prophet
+decomposition variables. 4. Adding contextual variables. 5 Adding organic
+variables. Results will be reflected on the waterfall chart.}
+
+\item{solID}{Character vector. Model IDs to plot.}
+
+\item{exclude}{Character vector. Manually exclude variables from plot.}
 }
 \value{
 (Invisible) list. Class: \code{robyn_outputs}. Contains processed
